@@ -1,18 +1,22 @@
 import React from 'react';
 import { StyleSheet, View, Text, ImageBackground, TouchableOpacity, Image } from 'react-native';
+import ProgressBar from '../../components/common/progressBar';
+import Button from '../../components/common/Button';
+import { useNavigation } from '@react-navigation/native';
 
-type OnBoardingProps = {
-  onNext: () => void;
-};
+const OnBoarding: React.FC = () => {
+  const navigation = useNavigation();
 
-const OnBoarding: React.FC<OnBoardingProps> = ({ onNext }) => {
   return (
     <ImageBackground
       source={require('../../assets/on-boarding/OnBoarding1.png')}
       style={styles.background}
     >
       {/* Botón Skip */}
-      <TouchableOpacity style={styles.skipButton} onPress={onNext}>
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={() => navigation.navigate('LaunchScreen' as never)}
+      >
         <Text style={styles.skipText}>Skip {'>'}</Text>
       </TouchableOpacity>
 
@@ -32,15 +36,13 @@ const OnBoarding: React.FC<OnBoardingProps> = ({ onNext }) => {
           desde la recepción hasta la entrega.
         </Text>
         {/* Indicador de progreso */}
-        <View style={styles.progressBar}>
-          <View style={styles.progressDotActive} />
-          <View style={styles.progressDot} />
-          <View style={styles.progressDot} />
-        </View>
+        <ProgressBar total={3} activeIndex={0} />
         {/* Botón Siguiente */}
-        <TouchableOpacity style={styles.nextButton} onPress={onNext}>
-          <Text style={styles.nextButtonText}>Siguiente</Text>
-        </TouchableOpacity>
+        <Button
+          title="Siguiente"
+          onPress={() => navigation.navigate('OnBoardingTwo' as never)}
+          style={styles.nextButton}
+        />
       </View>
     </ImageBackground>
   );
@@ -67,19 +69,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 32,
+    padding: 24, 
     alignItems: 'center',
     width: '100%',
-    minHeight: 350,
+    minHeight: 320, 
   },
   logo: {
-    width: 90, // Aumentado para que la imagen sea más grande
-    height: 90,
+    width: 120, 
+    height: 120,
     marginBottom: 12,
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '900',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -92,36 +94,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  progressBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  progressDot: {
-    width: 18,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: 2,
-  },
-  progressDotActive: {
-    width: 18,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CE0E2D',
-    marginHorizontal: 2,
-  },
   nextButton: {
-    backgroundColor: '#CE0E2D',
-    borderRadius: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
-    alignItems: 'center',
   },
   nextButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+
   },
 });
 
