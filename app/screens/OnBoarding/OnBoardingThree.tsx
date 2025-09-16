@@ -1,21 +1,24 @@
 import React from 'react';
-import { StyleSheet, View, Text, ImageBackground, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ProgressBar from '../../components/common/progressBar';
+import Button from '../../components/common/Button';
+import { useNavigation } from '@react-navigation/native';
 
-type OnBoardingProps = {
-  onNext: () => void;
-};
+const OnBoardingThree: React.FC = () => {
+  const navigation = useNavigation();
 
-const OnBoardingThree: React.FC<OnBoardingProps> = ({ onNext }) => {
   return (
     <ImageBackground
-      source={require('../../assets/on-boarding/OnBoarding3.jpg')} // Cambia la imagen por la del tercer onboarding
+      source={require('../../assets/on-boarding/OnBoarding3.jpg')}
       style={styles.background}
     >
       {/* Botón Skip */}
-      <TouchableOpacity style={styles.skipButton} onPress={() => {/* navegación */}}>
-        <Text style={styles.skipText}>Skip {'>'}</Text>
-      </TouchableOpacity>
+      <Button
+        title="Skip >"
+        onPress={() => navigation.navigate('LaunchScreen' as never)}
+        style={styles.skipButton}
+      />
 
       {/* Card inferior */}
       <View style={styles.card}>
@@ -29,15 +32,9 @@ const OnBoardingThree: React.FC<OnBoardingProps> = ({ onNext }) => {
           Con ShulkerHouse, cada movimiento transforma vidas.
         </Text>
         {/* Indicador de progreso */}
-        <View style={styles.progressBar}>
-          <View style={styles.progressDot} />
-          <View style={styles.progressDot} />
-          <View style={styles.progressDotActive} />
-        </View>
+        <ProgressBar total={3} activeIndex={2} />
         {/* Botón Empezar */}
-        <TouchableOpacity style={styles.nextButton} onPress={onNext}>
-          <Text style={styles.nextButtonText}>Empezar</Text>
-        </TouchableOpacity>
+        <Button title="Empezar" onPress={() => navigation.navigate('LaunchScreen' as never)} />
       </View>
     </ImageBackground>
   );
@@ -53,11 +50,11 @@ const styles = StyleSheet.create({
     top: 50,
     right: 30,
     zIndex: 2,
-  },
-  skipText: {
-    color: '#CE0E2D',
-    fontWeight: 'bold',
-    fontSize: 16,
+    width: 100,
+    paddingVertical: 5,
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
+    elevation: 0,
   },
   card: {
     backgroundColor: '#fff',
@@ -73,7 +70,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '900',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -85,37 +82,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 24,
-  },
-  progressBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  progressDot: {
-    width: 18,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: 2,
-  },
-  progressDotActive: {
-    width: 18,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CE0E2D',
-    marginHorizontal: 2,
-  },
-  nextButton: {
-    backgroundColor: '#CE0E2D',
-    borderRadius: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
 });
 

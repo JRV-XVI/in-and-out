@@ -2,12 +2,11 @@ import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import Logo from '../../components/common/Logo';
 import Button from '../../components/common/Button';
+import { useNavigation } from '@react-navigation/native';
 
-type LaunchScreenTwoProps = {
-  onNext: () => void;
-};
+const LaunchScreenTwo: React.FC = () => {
+  const navigation = useNavigation();
 
-const LaunchScreenTwo: React.FC<LaunchScreenTwoProps> = ({ onNext }) => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -18,11 +17,13 @@ const LaunchScreenTwo: React.FC<LaunchScreenTwoProps> = ({ onNext }) => {
         <View style={styles.buttonContainer}>
           <Button 
             title="Iniciar Sesión" 
-            onPress={onNext} 
+            onPress={() => navigation.navigate('SignIn' as never)} 
+            style={styles.signInButton}
           />
           <Button 
             title="Registrarse" 
-            onPress={() => console.log('Register pressed')} 
+            onPress={() => navigation.navigate('SignUp' as never)} 
+            style={styles.registerButton} 
           />
         </View>
       </View>
@@ -53,6 +54,13 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 20,
     alignItems: 'center',
+  },
+  signInButton: {
+    width: '75%',
+    marginBottom: 15,
+  },
+  registerButton: {
+    width: '75%',
   },
 });
 

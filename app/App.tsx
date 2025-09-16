@@ -1,48 +1,35 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import OnBoarding from './screens/OnBoarding/OnBoarding';
 import OnBoardingTwo from './screens/OnBoarding/OnBoardingTwo';
-import OnBoardingThree from './screens/OnBoarding/OnBoardingThree'; // Importa el tercer onboarding
+import OnBoardingThree from './screens/OnBoarding/OnBoardingThree';
 import LaunchScreen from './screens/LaunchScreen/LaunchScreen';
 import LaunchScreenTwo from './screens/LaunchScreen/LaunchScreenTwo';
-import Login from './screens/Login/Login';
+import SignIn from './screens/SignIn/SignIn';
+import SignUp from './screens/SignUp/SignUp';
+
+const Stack = createStackNavigator();
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('onboarding');
-
-  useEffect(() => {
-    if (currentScreen === 'launch') {
-      const timer = setTimeout(() => setCurrentScreen('launchTwo'), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentScreen]);
-
-  const handleNext = () => {
-    if (currentScreen === 'onboarding') setCurrentScreen('onboardingTwo');
-    else if (currentScreen === 'onboardingTwo') setCurrentScreen('onboardingThree');
-    else if (currentScreen === 'onboardingThree') setCurrentScreen('launch');
-    else if (currentScreen === 'launchTwo') setCurrentScreen('login');
-  };
-
   return (
-    <>
-      {currentScreen === 'onboarding' && <OnBoarding onNext={handleNext} />}
-      {currentScreen === 'onboardingTwo' && <OnBoardingTwo onNext={handleNext} />}
-      {currentScreen === 'onboardingThree' && <OnBoardingThree onNext={handleNext} />}
-      {currentScreen === 'launch' && <LaunchScreen />}
-      {currentScreen === 'launchTwo' && <LaunchScreenTwo onNext={handleNext} />}
-      {currentScreen === 'login' && <Login />}
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        }}
+      >
+        <Stack.Screen name="OnBoarding" component={OnBoarding} />
+        <Stack.Screen name="OnBoardingTwo" component={OnBoardingTwo} />
+        <Stack.Screen name="OnBoardingThree" component={OnBoardingThree} />
+        <Stack.Screen name="LaunchScreen" component={LaunchScreen} />
+        <Stack.Screen name="LaunchScreenTwo" component={LaunchScreenTwo} />
+        <Stack.Screen name="SignIn" component={SignIn} />
+        <Stack.Screen name="SignUp" component={SignUp} />
+      </Stack.Navigator>
       <StatusBar style="auto" />
-    </>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
