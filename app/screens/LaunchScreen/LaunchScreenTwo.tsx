@@ -4,7 +4,7 @@ import Logo from '../../components/common/Logo';
 import Button from '../../components/common/Button';
 import { useNavigation } from '@react-navigation/native';
 
-const LaunchScreenTwo: React.FC = () => {
+const LaunchScreenTwo = () => {
   const navigation = useNavigation();
 
   return (
@@ -22,7 +22,7 @@ const LaunchScreenTwo: React.FC = () => {
           />
           <Button 
             title="Registrarse" 
-            onPress={() => navigation.navigate('SignUp' as never)} 
+            onPress={() => navigation.navigate('TokenSignUp' as never)} 
             style={styles.registerButton} 
           />
         </View>

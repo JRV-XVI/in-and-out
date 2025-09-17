@@ -7,7 +7,7 @@ type ButtonProps = {
   style?: object;
 };
 
-const Button: React.FC<ButtonProps> = ({ title, onPress, style }) => {
+const Button = ({ title, onPress, style }: ButtonProps) => {
   return (
     <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
       <Text style={styles.buttonText}>{title}</Text>

@@ -9,6 +9,11 @@ import LaunchScreen from './screens/LaunchScreen/LaunchScreen';
 import LaunchScreenTwo from './screens/LaunchScreen/LaunchScreenTwo';
 import SignIn from './screens/SignIn/SignIn';
 import SignUp from './screens/SignUp/SignUp';
+import TokenSignUp from './screens/SignUp/TokenSignUp'; // Agrega esta línea
+import HomePageResponsable from './screens/Responsable/HomePageResponsable';
+import SetPassword from './screens/Password/SetPassword';
+import SetPasswordTwo from './screens/Password/SetPasswordTwo';
+import SetPasswordThree from './screens/Password/SetPasswordThree';
 
 const Stack = createStackNavigator();
 
@@ -28,6 +33,11 @@ export default function App() {
         <Stack.Screen name="LaunchScreenTwo" component={LaunchScreenTwo} />
         <Stack.Screen name="SignIn" component={SignIn} />
         <Stack.Screen name="SignUp" component={SignUp} />
+        <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
+        <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} />
+        <Stack.Screen name="SetPassword" component={SetPassword} />
+        <Stack.Screen name="SetPasswordTwo" component={SetPasswordTwo} />
+        <Stack.Screen name="SetPasswordThree" component={SetPasswordThree} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

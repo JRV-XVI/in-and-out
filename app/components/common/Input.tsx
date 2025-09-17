@@ -8,13 +8,13 @@ type InputProps = TextInputProps & {
   containerStyle?: object;
 };
 
-const Input: React.FC<InputProps> = ({
+const Input = ({
   label,
   error,
   containerStyle,
   secureTextEntry,
   ...props
-}) => {
+}: InputProps) => {
   const [secure, setSecure] = useState(!!secureTextEntry);
 
   return (

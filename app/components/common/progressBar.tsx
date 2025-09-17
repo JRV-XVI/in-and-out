@@ -6,7 +6,7 @@ type ProgressBarProps = {
   activeIndex: number;   // Índice del paso activo (comienza en 0)
 };
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ total, activeIndex }) => {
+const ProgressBar = ({ total, activeIndex }: ProgressBarProps) => {
   return (
     <View style={styles.progressBar}>
       {Array.from({ length: total }).map((_, idx) => (

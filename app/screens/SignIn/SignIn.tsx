@@ -5,7 +5,7 @@ import Input from '../../components/common/Input';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useNavigation } from '@react-navigation/native';
 
-const SignIn: React.FC = () => {
+const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
@@ -43,17 +43,22 @@ const SignIn: React.FC = () => {
         />
       </View>
 
-      <TouchableOpacity style={styles.forgotButton}>
+      <TouchableOpacity
+        style={styles.forgotButton}
+        onPress={() => navigation.navigate('SetPassword' as never)}
+      >
         <Text style={styles.forgotText}>Olvidé mi contraseña</Text>
       </TouchableOpacity>
 
       <View style={styles.signInButtonContainer}>
-        <Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */ }} />
+        {/*<Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */ }
+        <Button title="Iniciar Sesión" style={styles.signInButton} onPress={() =>navigation.navigate('HomePageResponsable' as never)} />
+        
       </View>
 
       <View style={styles.registerContainer}>
         <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-      <TouchableOpacity onPress={() => navigation.navigate('SignUp' as never)}>
+      <TouchableOpacity onPress={() => navigation.navigate('TokenSignUp' as never)}>
         <Text style={styles.registerLink}>Regístrate</Text>
       </TouchableOpacity>
       </View>
@@ -70,8 +75,9 @@ const styles = StyleSheet.create({
   },
   welcomeDesc: {
     color: '#5C5C60',
-    fontSize: 14,
+    fontSize: 18,
     marginBottom: 24,
+    textAlign: 'justify',
   },
   forgotButton: {
     alignSelf: 'flex-end',
