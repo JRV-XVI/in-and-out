@@ -10,7 +10,7 @@ const userTypes = [
   { label: 'responsable', value: 'responsable' },
 ];
 
-const SignUp: React.FC = () => {
+const SignUp = () => {
   const navigation = useNavigation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -82,12 +82,6 @@ const SignUp: React.FC = () => {
       <View style={styles.buttonContainer}>
         <Button title="Confirmar" onPress={() => { /* lógica de registro */ }} style={styles.confirmButton} />
       </View>
-      <View style={styles.loginContainer}>
-        <Text style={styles.loginText}>¿Ya tienes una cuenta? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('SignIn' as never)}>
-          <Text style={styles.loginLink}>Inicia sesión</Text>
-        </TouchableOpacity>
-      </View>
     </GeneralTemplate>
   );
 };
@@ -132,21 +126,6 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     width: '65%',
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  loginText: {
-    color: '#5C5C60',
-    fontSize: 14,
-  },
-  loginLink: {
-    color: '#CE0E2D',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 });
 

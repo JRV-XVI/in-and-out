@@ -5,7 +5,7 @@ import ProgressBar from '../../components/common/progressBar';
 import Button from '../../components/common/Button';
 import { useNavigation } from '@react-navigation/native';
 
-const OnBoardingThree: React.FC = () => {
+const OnBoardingThree = () => {
   const navigation = useNavigation();
 
   return (

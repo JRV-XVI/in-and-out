@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface GeneralTemplateProps {
   title: string;
@@ -7,13 +8,13 @@ interface GeneralTemplateProps {
   onBackPress?: () => void; // Opcional, para manejar el evento de regresar
 }
 
-const GeneralTemplate: React.FC<GeneralTemplateProps> = ({ title, children, onBackPress }) => {
+const GeneralTemplate = ({ title, children, onBackPress }: GeneralTemplateProps) => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header rojo con título y botón de regresar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-          <Text style={styles.backIcon}>{'<'}</Text>
+          <Ionicons name="chevron-back" style={styles.backIcon} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>

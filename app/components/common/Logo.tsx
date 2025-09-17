@@ -6,7 +6,7 @@ type LogoProps = {
   size?: number;
 };
 
-const Logo: React.FC<LogoProps> = ({ showText = true, size = 300 }) => {  // Aumentado el tamaño predeterminado
+const Logo = ({ showText = true, size = 300 }: LogoProps) => {
   return (
     <View style={styles.container}>
       <Image
@@ -34,17 +34,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brandName: {
-    fontSize: 32,       // Aumentado el tamaño de la fuente
+    fontSize: 32,
     fontWeight: '900',
-    marginTop: -50,   
+    marginTop: -50,
   },
   redText: {
     color: '#CE0E2D',
-    fontWeight: '900',  // Más negrita para el texto rojo
+    fontWeight: '900',
   },
   grayText: {
     color: '#5C5C60',
-    fontWeight: '900',  // Más negrita para el texto gris
+    fontWeight: '900',
   },
 });
 
