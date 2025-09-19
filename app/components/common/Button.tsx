@@ -5,28 +5,32 @@ type ButtonProps = {
   title: string;
   onPress?: () => void;
   style?: object;
+  textStyle?: object;
 };
 
-const Button = ({ title, onPress, style }: ButtonProps) => {
+const Button = ({ title, onPress, style, textStyle }: ButtonProps) => {
   return (
     <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
-      <Text style={styles.buttonText}>{title}</Text>
+      <Text style={[styles.buttonText, textStyle]} numberOfLines={2} adjustsFontSizeToFit>{title}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#CE0E2D',
+    backgroundColor: '#DFCCBE',
     borderRadius: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    textAlign: 'center',
   },
 });
 

@@ -74,7 +74,6 @@ const SignIn = () => {
           onPress={handleSignIn}
           style={styles.signInButton}
         />
-
       </View>
 
       <View style={styles.registerContainer}>
