@@ -52,7 +52,7 @@ const SignIn = () => {
 
       <View style={styles.signInButtonContainer}>
         {/*<Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */ }
-        <Button title="Iniciar Sesión" style={styles.signInButton} onPress={() =>navigation.navigate('HomePageResponsable' as never)} />
+        <Button title="Iniciar Sesión" style={styles.signInButton} onPress={() =>navigation.navigate('HomePageDonador' as never)} />
         
       </View>
 
