@@ -11,7 +11,7 @@ const HomePageDonador = () => {
     setActiveTab(tab);
 
     if (tab == 'home') {
-      setSelectedView('estadisticas')
+      setSelectedView('estadisticas');
     }
   }
 
