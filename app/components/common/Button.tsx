@@ -18,20 +18,18 @@ const Button = ({ title, onPress, style, textStyle }: ButtonProps) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#DFCCBE',
+    backgroundColor: '#CE0E2D',
     borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 32,
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-    textAlign: 'center',
   },
 });
+
 
 export default Button;

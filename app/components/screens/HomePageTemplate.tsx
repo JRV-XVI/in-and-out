@@ -140,7 +140,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   buttonSelected: {
-    backgroundColor: '#CE0E2D',
+    backgroundColor: '#5C5C60',
+    color: 'black',
   },
   contentCard: {
     flex: 1,
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
-    marginTop: -50,
+    marginTop: -20,
     zIndex: 2,
   },
   sectionTitle: {
