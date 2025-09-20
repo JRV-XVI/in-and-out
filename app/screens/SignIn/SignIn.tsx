@@ -20,10 +20,25 @@ const SignIn = () => {
     const user = await handleGetUser(email, password);
     if (user) {
       Alert.alert("Éxito", "Ingreso de manera correcta (debe cambiar de pantalla dependiendo del usuario)");
-      console.log("Login succesfull");
-      navigation.navigate('HomePageResponsable' as never); // Change this to a real screen *IMPORTANT*
+      console.log("Login successful", user);
+      switch (user.userType) {
+        case 1:
+          navigation.navigate('HomePageDonador' as never); // Change this to a real screen *IMPORTANT*
+          break;
+        case 2:
+          navigation.navigate('HomePageResponsable' as never); // Change this to a real screen *IMPORTANT*
+          break;
+        case 3:
+          navigation.navigate('HomePageAdmin' as never); // Change this to a real screen *IMPORTANT*
+          break;
+        default:
+          Alert.alert("Atención", "Tu tipo de usuario no está asignado correctamente");
+          break;
+      }
     } else if (error) {
       Alert.alert("Error", error);
+    } else {
+      Alert.alert("Error", "Usuario o contraseña incorrectos");
     }
   }
 

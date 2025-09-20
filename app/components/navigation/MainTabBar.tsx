@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 interface MainTabBarProps {
   onTabPress: (tab: string) => void;
@@ -15,32 +16,43 @@ const tabs = [
   { key: 'profile', icon: <Ionicons name="person" size={28} color="#fff" /> },
 ];
 
-const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => (
-  <View style={styles.container}>
-    {tabs.map(tab => {
-      const isActive = activeTab === tab.key;
-      const isHome = tab.key === 'home';
-      return (
-        <Pressable
-          key={tab.key}
-          style={[
-            styles.tabButton,
-            styles.shadow,
-            isHome && styles.homeButton,
-            isActive
-              ? { backgroundColor: '#5C5C60', borderColor: '#5C5C60' }
-              : { backgroundColor: '#CE0E2D', borderColor: '#CE0E2D' },
-          ]}
-          onPress={() => onTabPress(tab.key)}
-        >
-          {React.cloneElement(tab.icon, {
-            color: '#fff',
-          })}
-        </Pressable>
-      );
-    })}
-  </View>
-);
+const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
+  const navigation = useNavigation();
+
+  return (
+    <View style={styles.container}>
+      {tabs.map(tab => {
+        const isActive = activeTab === tab.key;
+        const isHome = tab.key === 'home';
+        return (
+          <Pressable
+            key={tab.key}
+            style={[
+              styles.tabButton,
+              styles.shadow,
+              isHome && styles.homeButton,
+              isActive
+                ? { backgroundColor: '#5C5C60', borderColor: '#5C5C60' }
+                : { backgroundColor: '#CE0E2D', borderColor: '#CE0E2D' },
+            ]}
+            onPress={() => {
+              if (tab.key === "profile") {
+                navigation.navigate("LaunchScreen" as never); // navegación directa
+              } else {
+                onTabPress(tab.key);
+              }
+            }}
+          >
+            {React.cloneElement(tab.icon, {
+              color: '#fff',
+            })}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+};
+
 
 const styles = StyleSheet.create({
   container: {
@@ -52,7 +64,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     marginBottom: 20,
-    paddingHorizontal: 10, 
+    paddingHorizontal: 10,
   },
   tabButton: {
     backgroundColor: '#CE0E2D',
