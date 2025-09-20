@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { useNavigation } from '@react-navigation/native';
+import { useCreateUser } from '../../hooks/useUsers';
 
 const userTypes = [
-  { label: 'donante', value: 'donante' },
-  { label: 'responsable', value: 'responsable' },
-];
+  { value: 1, label: "donante" },
+  { value: 2, label: "responsable" },
+] as const;
+
 
 const SignUp = () => {
   const navigation = useNavigation();
@@ -16,7 +18,31 @@ const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [userType, setUserType] = useState('');
+  const [userType, setUserType] = useState<number | null>(null);
+  const { handleCreateUser, loading, error } = useCreateUser();
+
+  const handleSignUp = async () => {
+    if (!name || !email || !password || !phone || !userType) {
+      Alert.alert("Error", "Por favor llena todos los campos");
+      return;
+    }
+
+    const newUser = await handleCreateUser({
+      name,
+      email,
+      password,
+      phone: Number(phone),
+      userType
+    });
+
+    if (newUser) {
+      Alert.alert("Éxito", "Usuario creado correctamente");
+      console.log("New user");
+      navigation.navigate('LaunchScreen' as never); // Change this to a real screen *IMPORTANT*
+    } else if (error) {
+      Alert.alert("Error", error);
+    }
+  };
 
   return (
     <GeneralTemplate
@@ -80,7 +106,11 @@ const SignUp = () => {
         ))}
       </View>
       <View style={styles.buttonContainer}>
-        <Button title="Confirmar" onPress={() => { /* lógica de registro */ }} style={styles.confirmButton} />
+        <Button
+          title={loading ? "Registrando..." : "Confirmar"}
+          onPress={handleSignUp}
+          style={styles.confirmButton}
+        />
       </View>
     </GeneralTemplate>
   );

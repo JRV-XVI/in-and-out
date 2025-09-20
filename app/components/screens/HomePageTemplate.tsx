@@ -9,6 +9,10 @@ interface TemplateProps {
   onPrimaryAction: () => void;
   onSecondaryAction: () => void;
   children?: React.ReactNode;
+  headerTitle?: string;
+  primaryButtonText?: string;
+  secondaryButtonText?: string;
+  sectionTitle?: string;
 }
 
 const HomePageTemplate = ({
@@ -17,6 +21,10 @@ const HomePageTemplate = ({
   onPrimaryAction,
   onSecondaryAction,
   children,
+  headerTitle = "Texto cambio",
+  primaryButtonText = "Texto cambio",
+  secondaryButtonText = "Texto cambio",
+  sectionTitle = "Texto cambio"
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
 
@@ -24,39 +32,41 @@ const HomePageTemplate = ({
     <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Texto cambio</Text>
+        <Text style={styles.title}>{headerTitle}</Text>
         <Text style={styles.subtitle}>Entrar & Salir Con Propósito</Text>
       </View>
       {/* Highlight Card */}
       <View style={styles.highlightCard}>
         <View style={styles.actionsRow}>
           <Button
-            title="Texto cambio"
+            title={primaryButtonText}
             onPress={() => {
               setSelectedButton('primary');
               onPrimaryAction();
             }}
             style={[
               styles.primaryButton,
-              selectedButton === 'primary' ? styles.buttonSelected : styles.buttonTextGray,
+              selectedButton === 'primary' ? styles.buttonSelected : {},
             ]}
+            textStyle={selectedButton === 'primary' ? {color: 'white'} : {color: 'black'}}
           />
           <Button
-            title="Texto cambio"
+            title={secondaryButtonText}
             onPress={() => {
               setSelectedButton('secondary');
               onSecondaryAction();
             }}
             style={[
               styles.secondaryButton,
-              selectedButton === 'secondary' ? styles.buttonSelected : styles.buttonTextGray,
+              selectedButton === 'secondary' ? styles.buttonSelected : {},
             ]}
+            textStyle={selectedButton === 'secondary' ? {color: 'white'} : {color: 'black'}}
           />
         </View>
       </View>
       {/* Content Card */}
       <View style={styles.contentCard}>
-        <Text style={styles.sectionTitle}>Texto cambio</Text>
+        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
         {children}
       </View>
       {/* Bottom Navigation */}
@@ -105,28 +115,32 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 32,
     marginBottom: 20,
+    paddingHorizontal: 16,
   },
   primaryButton: {
     borderRadius: 16,
     paddingVertical: 10,
-    paddingHorizontal: 24,
-    marginRight: 16,
+    paddingHorizontal: 16,
+    flex: 1,
+    marginRight: 8,
+    maxWidth: '48%',
   },
   secondaryButton: {
     borderRadius: 16,
     paddingVertical: 10,
-    paddingHorizontal: 24,
-    marginLeft: 0,
+    paddingHorizontal: 16,
+    flex: 1,
+    marginLeft: 8,
+    maxWidth: '48%',
   },
   buttonTextGray: {
     color: 'red',
   },
   buttonSelected: {
-    backgroundColor: '#5C5C60', // gris claro
+    backgroundColor: '#5C5C60',
     color: 'black',
   },
   contentCard: {

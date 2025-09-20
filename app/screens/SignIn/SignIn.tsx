@@ -1,14 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useNavigation } from '@react-navigation/native';
+import { useGetUser } from '../../hooks/useUsers';
 
 const SignIn = () => {
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigation = useNavigation();
+  const { handleGetUser, loading, error } = useGetUser();
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Por favor llena todo los campos")
+      return;
+    }
+    const user = await handleGetUser(email, password);
+    if (user) {
+      Alert.alert("Éxito", "Ingreso de manera correcta (debe cambiar de pantalla dependiendo del usuario)");
+      console.log("Login succesfull");
+      navigation.navigate('HomePageResponsable' as never); // Change this to a real screen *IMPORTANT*
+    } else if (error) {
+      Alert.alert("Error", error);
+    }
+  }
 
   return (
     <GeneralTemplate
@@ -51,16 +68,19 @@ const SignIn = () => {
       </TouchableOpacity>
 
       <View style={styles.signInButtonContainer}>
-        {/*<Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */ }
-        <Button title="Iniciar Sesión" style={styles.signInButton} onPress={() =>navigation.navigate('HomePageResponsable' as never)} />
-        
+        {/*<Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */}
+        <Button
+          title={loading ? "Cargando..." : "Iniciar Sesión"}
+          onPress={handleSignIn}
+          style={styles.signInButton}
+        />
       </View>
 
       <View style={styles.registerContainer}>
         <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-      <TouchableOpacity onPress={() => navigation.navigate('TokenSignUp' as never)}>
-        <Text style={styles.registerLink}>Regístrate</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('TokenSignUp' as never)}>
+          <Text style={styles.registerLink}>Regístrate</Text>
+        </TouchableOpacity>
       </View>
     </GeneralTemplate>
   );

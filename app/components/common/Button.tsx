@@ -5,12 +5,13 @@ type ButtonProps = {
   title: string;
   onPress?: () => void;
   style?: object;
+  textStyle?: object;
 };
 
-const Button = ({ title, onPress, style }: ButtonProps) => {
+const Button = ({ title, onPress, style, textStyle }: ButtonProps) => {
   return (
     <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
-      <Text style={styles.buttonText}>{title}</Text>
+      <Text style={[styles.buttonText, textStyle]} numberOfLines={2} adjustsFontSizeToFit>{title}</Text>
     </TouchableOpacity>
   );
 };
@@ -29,5 +30,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
 
 export default Button;

@@ -11,6 +11,7 @@ import SignIn from './screens/SignIn/SignIn';
 import SignUp from './screens/SignUp/SignUp';
 import TokenSignUp from './screens/SignUp/TokenSignUp'; // Agrega esta línea
 import HomePageResponsable from './screens/Responsable/HomePageResponsable';
+import HomePageDonador from './screens/Donador/HomePageDonador'
 import SetPassword from './screens/Password/SetPassword';
 import SetPasswordTwo from './screens/Password/SetPasswordTwo';
 import SetPasswordThree from './screens/Password/SetPasswordThree';
@@ -35,6 +36,7 @@ export default function App() {
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
         <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} />
+        <Stack.Screen name="HomePageDonador" component={HomePageDonador} />
         <Stack.Screen name="SetPassword" component={SetPassword} />
         <Stack.Screen name="SetPasswordTwo" component={SetPasswordTwo} />
         <Stack.Screen name="SetPasswordThree" component={SetPasswordThree} />
