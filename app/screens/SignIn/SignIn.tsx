@@ -21,7 +21,7 @@ const SignIn = () => {
     if (user) {
       Alert.alert("Éxito", "Ingreso de manera correcta (debe cambiar de pantalla dependiendo del usuario)");
       console.log("Login succesfull");
-      navigation.navigate('HomePageResponsable' as never); // Change this to a real screen *IMPORTANT*
+      navigation.navigate('HomePageDonador' as never); // Change this to a real screen *IMPORTANT*
     } else if (error) {
       Alert.alert("Error", error);
     }
