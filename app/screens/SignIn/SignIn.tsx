@@ -21,11 +21,8 @@ const SignIn = () => {
     }
     const user = await handleGetUser(email, password);
     if (user) {
-      setUser({
-        username: user.name, 
-        email: user.email,
-      });
-
+      setUser(user); // user ya tiene name, email, etc.
+      
       Alert.alert("Éxito", "Ingreso de manera correcta (debe cambiar de pantalla dependiendo del usuario)");
       console.log("Login successful", user);
       switch (user.userType) {

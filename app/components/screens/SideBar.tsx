@@ -19,7 +19,7 @@ const SideBar = ({ navigation }: SideBarProps) => {
           source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
           style={styles.avatar}
         />
-        <Text style={styles.username}>{user?.username ?? 'Usuario'}</Text>
+        <Text style={styles.username}>{user?.name ?? 'Usuario'}</Text>
         <Text style={styles.email}>{user?.email ?? ''}</Text>
       </View>
 

@@ -3,6 +3,8 @@ import { View, Pressable, StyleSheet, Platform, Modal } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import SideBar from '../../components/screens/SideBar';
+import Notifications from '../../components/screens/Notifications';
+import History from '../../components/screens/History';
 
 interface MainTabBarProps {
   onTabPress: (tab: string) => void;
@@ -20,12 +22,16 @@ const tabs = [
 const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
   const navigation = useNavigation<any>();
   const [sideBarVisible, setSideBarVisible] = useState(false);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [sideBarTab, setSideBarTab] = useState<string | null>(null);
 
   const handleTabPress = (tabKey: string) => {
     if (tabKey === 'profile') {
       setSideBarVisible(true);
       setSideBarTab('profile');
+    } else if (tabKey === 'notifications') {
+      setNotificationsVisible(true);
+      setSideBarTab('notifications');
     } else {
       onTabPress(tabKey);
     }
@@ -36,7 +42,15 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
     setSideBarTab(null);
   };
 
-  const currentActiveTab = sideBarVisible && sideBarTab === 'profile' ? 'profile' : activeTab;
+  const handleCloseNotifications = () => {
+    setNotificationsVisible(false);
+    setSideBarTab(null);
+  };
+
+  const currentActiveTab =
+    (sideBarVisible && sideBarTab === 'profile') || (notificationsVisible && sideBarTab === 'notifications')
+      ? sideBarTab
+      : activeTab;
 
   return (
     <>
@@ -64,6 +78,7 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
           );
         })}
       </View>
+      {/* Sidebar Modal */}
       <Modal
         visible={sideBarVisible}
         animationType="slide"
@@ -76,6 +91,36 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
             onPress={handleCloseSidebar}
           />
           <SideBar navigation={navigation} />
+        </View>
+      </Modal>
+      {/* Notifications Modal */}
+      <Modal
+        visible={notificationsVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseNotifications}
+      >
+        <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0006' }}>
+          <Pressable
+            style={{ flex: 1 }}
+            onPress={handleCloseNotifications}
+          />
+          <Notifications />
+        </View>
+      </Modal>
+      {/* History Modal */}
+      <Modal
+        visible={false} // Cambia a true para mostrar el modal de historial
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {}}
+      >
+        <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0006' }}>
+          <Pressable
+            style={{ flex: 1 }}
+            onPress={() => {}}
+          />
+          <History />
         </View>
       </Modal>
     </>
@@ -93,6 +138,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     marginBottom: 20,
     paddingHorizontal: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#0006',
   },
   tabButton: {
     backgroundColor: '#CE0E2D',
