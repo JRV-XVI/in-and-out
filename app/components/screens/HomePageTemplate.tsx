@@ -31,7 +31,7 @@ const HomePageTemplate = ({
   const { user } = useUser();
 
   // Si headerTitle no está definido, muestra "Hola, <usuario>"
-  const displayTitle = headerTitle ?? `Hola, ${user?.username ?? 'Usuario'}`;
+  const displayTitle = headerTitle ?? `Hola, ${user?.name ?? 'Usuario'}`;
 
   return (
     <View style={styles.root}>
