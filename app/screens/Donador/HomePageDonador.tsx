@@ -21,7 +21,6 @@ const HomePageDonador = () => {
       onTabPress={handleTabPress}
       onPrimaryAction={() => setSelectedView('misDonaciones')}
       onSecondaryAction={() => setSelectedView('registrarDonaciones')}
-      headerTitle="Hola, { Donante }"
       primaryButtonText="Mis Donaciones"
       secondaryButtonText="Registrar Donaciones"
       sectionTitle={

@@ -28,7 +28,6 @@ const HomePageResponsable = () => {
       onTabPress={handleTabPress}
       onPrimaryAction={() => setSelectedView('entrada')}
       onSecondaryAction={() => setSelectedView('salida')}
-      headerTitle="Hola, { Responsable }"
       primaryButtonText="Entrada"
       secondaryButtonText="Salida"
       sectionTitle="Solicitudes Abiertas"

@@ -16,11 +16,13 @@ import HomePageAdmin from './screens/Admin/HomePageAdmin';
 import SetPassword from './screens/Password/SetPassword';
 import SetPasswordTwo from './screens/Password/SetPasswordTwo';
 import SetPasswordThree from './screens/Password/SetPasswordThree';
+import { UserProvider } from './context/UserContext';
 
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
+    <UserProvider>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
@@ -45,5 +47,6 @@ export default function App() {
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
+    </UserProvider>
   );
 }

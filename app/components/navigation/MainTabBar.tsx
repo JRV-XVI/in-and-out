@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, StyleSheet, Platform, Modal } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import SideBar from '../../components/screens/SideBar';
 
 interface MainTabBarProps {
   onTabPress: (tab: string) => void;
@@ -17,42 +18,69 @@ const tabs = [
 ];
 
 const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const [sideBarVisible, setSideBarVisible] = useState(false);
+  const [sideBarTab, setSideBarTab] = useState<string | null>(null);
+
+  const handleTabPress = (tabKey: string) => {
+    if (tabKey === 'profile') {
+      setSideBarVisible(true);
+      setSideBarTab('profile');
+    } else {
+      onTabPress(tabKey);
+    }
+  };
+
+  const handleCloseSidebar = () => {
+    setSideBarVisible(false);
+    setSideBarTab(null);
+  };
+
+  const currentActiveTab = sideBarVisible && sideBarTab === 'profile' ? 'profile' : activeTab;
 
   return (
-    <View style={styles.container}>
-      {tabs.map(tab => {
-        const isActive = activeTab === tab.key;
-        const isHome = tab.key === 'home';
-        return (
+    <>
+      <View style={styles.container}>
+        {tabs.map(tab => {
+          const isActive = currentActiveTab === tab.key;
+          const isHome = tab.key === 'home';
+          return (
+            <Pressable
+              key={tab.key}
+              style={[
+                styles.tabButton,
+                styles.shadow,
+                isHome && styles.homeButton,
+                isActive
+                  ? { backgroundColor: '#5C5C60', borderColor: '#5C5C60' }
+                  : { backgroundColor: '#CE0E2D', borderColor: '#CE0E2D' },
+              ]}
+              onPress={() => handleTabPress(tab.key)}
+            >
+              {React.cloneElement(tab.icon, {
+                color: '#fff',
+              })}
+            </Pressable>
+          );
+        })}
+      </View>
+      <Modal
+        visible={sideBarVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseSidebar}
+      >
+        <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0006' }}>
           <Pressable
-            key={tab.key}
-            style={[
-              styles.tabButton,
-              styles.shadow,
-              isHome && styles.homeButton,
-              isActive
-                ? { backgroundColor: '#5C5C60', borderColor: '#5C5C60' }
-                : { backgroundColor: '#CE0E2D', borderColor: '#CE0E2D' },
-            ]}
-            onPress={() => {
-              if (tab.key === "profile") {
-                navigation.navigate("LaunchScreen" as never); // navegación directa
-              } else {
-                onTabPress(tab.key);
-              }
-            }}
-          >
-            {React.cloneElement(tab.icon, {
-              color: '#fff',
-            })}
-          </Pressable>
-        );
-      })}
-    </View>
+            style={{ flex: 1 }}
+            onPress={handleCloseSidebar}
+          />
+          <SideBar navigation={navigation} />
+        </View>
+      </Modal>
+    </>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
