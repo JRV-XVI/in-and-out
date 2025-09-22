@@ -21,7 +21,6 @@ const HomePageAdmin = () => {
       onTabPress={handleTabPress}
       onPrimaryAction={() => setSelectedView('proyectos')}
       onSecondaryAction={() => setSelectedView('usuarios')}
-      headerTitle="Hola, { Administrador }"
       primaryButtonText="Proyectos"
       secondaryButtonText="Usuarios"
       sectionTitle={
