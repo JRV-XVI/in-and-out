@@ -12,14 +12,17 @@ import SignUp from './screens/SignUp/SignUp';
 import TokenSignUp from './screens/SignUp/TokenSignUp'; // Agrega esta línea
 import HomePageResponsable from './screens/Responsable/HomePageResponsable';
 import HomePageDonador from './screens/Donador/HomePageDonador'
+import HomePageAdmin from './screens/Admin/HomePageAdmin';
 import SetPassword from './screens/Password/SetPassword';
 import SetPasswordTwo from './screens/Password/SetPasswordTwo';
 import SetPasswordThree from './screens/Password/SetPasswordThree';
+import { UserProvider } from './context/UserContext';
 
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
+    <UserProvider>
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
@@ -37,11 +40,13 @@ export default function App() {
         <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
         <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} />
         <Stack.Screen name="HomePageDonador" component={HomePageDonador} />
+        <Stack.Screen name="HomePageAdmin" component={HomePageAdmin} />
         <Stack.Screen name="SetPassword" component={SetPassword} />
         <Stack.Screen name="SetPasswordTwo" component={SetPasswordTwo} />
         <Stack.Screen name="SetPasswordThree" component={SetPasswordThree} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
+    </UserProvider>
   );
 }

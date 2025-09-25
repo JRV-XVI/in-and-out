@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-type CardType = 'completados' | 'pendientes' | 'rechazado';
+type CardType = 'completados' | 'pendientes' | 'rechazado' | 'ingreso' | 'apoyo' | 'responsables' | 'donadores';
 
 interface CardProps {
   title: string;
@@ -23,6 +23,14 @@ const Card = ({ title, count, type, style }: CardProps) => {
         return <MaterialIcons name="refresh" size={size_} color="#ff9800" />;
       case 'rechazado':
         return <MaterialIcons name="close" size={size_} color="#f44336" />;
+      case 'ingreso':
+        return <MaterialIcons name="check" size={size_} color="#00953b" />;
+      case 'apoyo':
+        return <MaterialIcons name="food-bank" size={size_} color="#5c5c60" />;
+      case 'responsables':
+        return <MaterialIcons name="person" size={size_} color="#f19800" />;
+      case 'donadores':
+        return <MaterialIcons name="volunteer-activism" size={size_} color="#ce0e2d" />;
       default:
         return <MaterialIcons name="help-outline" size={size_} color="#9e9e9e" />;
     }
@@ -37,6 +45,14 @@ const Card = ({ title, count, type, style }: CardProps) => {
         return '#ff9800'; // naranja
       case 'rechazado':
         return '#f44336'; // rojo
+      case 'ingreso':
+        return '#00953b'; // no border
+      case 'apoyo':
+        return 'transparent';
+      case 'responsables':
+        return 'transparent';
+      case 'donadores':
+        return 'transparent';
       default:
         return '#9e9e9e';
     }

@@ -5,12 +5,14 @@ import Input from '../../components/common/Input';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useNavigation } from '@react-navigation/native';
 import { useGetUser } from '../../hooks/useUsers';
+import { useUser } from '../../context/UserContext'; 
 
 const SignIn = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { handleGetUser, loading, error } = useGetUser();
+  const { setUser } = useUser(); 
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -19,17 +21,19 @@ const SignIn = () => {
     }
     const user = await handleGetUser(email, password);
     if (user) {
+      setUser(user); // user ya tiene name, email, etc.
+      
       Alert.alert("Éxito", "Ingreso de manera correcta (debe cambiar de pantalla dependiendo del usuario)");
       console.log("Login successful", user);
       switch (user.userType) {
         case 1:
-          navigation.navigate('HomePageDonador' as never); // Change this to a real screen *IMPORTANT*
+          navigation.navigate('HomePageDonador' as never);
           break;
         case 2:
-          navigation.navigate('HomePageResponsable' as never); // Change this to a real screen *IMPORTANT*
+          navigation.navigate('HomePageResponsable' as never);
           break;
         case 3:
-          navigation.navigate('HomePageAdmin' as never); // Change this to a real screen *IMPORTANT*
+          navigation.navigate('HomePageAdmin' as never);
           break;
         default:
           Alert.alert("Atención", "Tu tipo de usuario no está asignado correctamente");
@@ -40,7 +44,7 @@ const SignIn = () => {
     } else {
       Alert.alert("Error", "Usuario o contraseña incorrectos");
     }
-  }
+  };
 
   return (
     <GeneralTemplate

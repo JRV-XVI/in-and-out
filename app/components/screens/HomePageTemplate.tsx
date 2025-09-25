@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MainTabBar from '../../components/navigation/MainTabBar';
 import Button from '../../components/common/Button'; // Ajusta la ruta si es necesario
+import { useUser } from '../../context/UserContext';
 
 interface TemplateProps {
   activeTab: string;
@@ -21,18 +22,22 @@ const HomePageTemplate = ({
   onPrimaryAction,
   onSecondaryAction,
   children,
-  headerTitle = "Texto cambio",
+  headerTitle,
   primaryButtonText = "Texto cambio",
   secondaryButtonText = "Texto cambio",
   sectionTitle = "Texto cambio"
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
+  const { user } = useUser();
+
+  // Si headerTitle no está definido, muestra "Hola, <usuario>"
+  const displayTitle = headerTitle ?? `Hola, ${user?.name ?? 'Usuario'}`;
 
   return (
     <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>{headerTitle}</Text>
+        <Text style={styles.title}>{displayTitle}</Text>
         <Text style={styles.subtitle}>Entrar & Salir Con Propósito</Text>
       </View>
       {/* Highlight Card */}
@@ -48,7 +53,7 @@ const HomePageTemplate = ({
               styles.primaryButton,
               selectedButton === 'primary' ? styles.buttonSelected : {},
             ]}
-            textStyle={selectedButton === 'primary' ? {color: 'white'} : {color: 'black'}}
+            textStyle={selectedButton === 'primary' ? { color: 'white' } : { color: 'black' }}
           />
           <Button
             title={secondaryButtonText}
@@ -60,7 +65,7 @@ const HomePageTemplate = ({
               styles.secondaryButton,
               selectedButton === 'secondary' ? styles.buttonSelected : {},
             ]}
-            textStyle={selectedButton === 'secondary' ? {color: 'white'} : {color: 'black'}}
+            textStyle={selectedButton === 'secondary' ? { color: 'white' } : { color: 'black' }}
           />
         </View>
       </View>
