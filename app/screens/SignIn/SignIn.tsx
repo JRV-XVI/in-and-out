@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useNavigation } from '@react-navigation/native';
 import { useGetUser } from '../../hooks/useUsers';
 import { useUser } from '../../context/UserContext'; 
+import { normalizeEmail } from '../../utils/normalize';
+import Alert from '../../components/common/Alert'; // Importa tu componente
 
 const SignIn = () => {
   const navigation = useNavigation();
@@ -14,17 +16,26 @@ const SignIn = () => {
   const { handleGetUser, loading, error } = useGetUser();
   const { setUser } = useUser(); 
 
+  // Estados para el Alert personalizado
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
+
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Por favor llena todo los campos")
+      showAlert("Por favor llena todo los campos", "error");
       return;
     }
-    const user = await handleGetUser(email, password);
+    const normalizedEmail = normalizeEmail(email);
+    const user = await handleGetUser(normalizedEmail, password);
     if (user) {
-      setUser(user); // user ya tiene name, email, etc.
-      
-      Alert.alert("Éxito", "Ingreso de manera correcta (debe cambiar de pantalla dependiendo del usuario)");
-      console.log("Login successful", user);
+      setUser(user);
       switch (user.userType) {
         case 1:
           navigation.navigate('HomePageDonador' as never);
@@ -36,13 +47,13 @@ const SignIn = () => {
           navigation.navigate('HomePageAdmin' as never);
           break;
         default:
-          Alert.alert("Atención", "Tu tipo de usuario no está asignado correctamente");
+          showAlert("Tu tipo de usuario no está asignado correctamente", "info");
           break;
       }
     } else if (error) {
-      Alert.alert("Error", error);
+      showAlert(error, "error");
     } else {
-      Alert.alert("Error", "Usuario o contraseña incorrectos");
+      showAlert("Usuario o contraseña incorrectos", "error");
     }
   };
 
@@ -51,6 +62,13 @@ const SignIn = () => {
       title="Iniciar Sesión"
       onBackPress={() => navigation.navigate('LaunchScreenTwo' as never)}
     >
+      <Alert
+        visible={alertVisible}
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertVisible(false)}
+      />
+
       <Text style={styles.welcomeTitle}>Bienvenido</Text>
       <Text style={styles.welcomeDesc}>
         Nos alegra tenerte aquí. Tu espacio seguro para gestionar donaciones está aquí, con ShulkerHouse.
@@ -87,7 +105,6 @@ const SignIn = () => {
       </TouchableOpacity>
 
       <View style={styles.signInButtonContainer}>
-        {/*<Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */}
         <Button
           title={loading ? "Cargando..." : "Iniciar Sesión"}
           onPress={handleSignIn}

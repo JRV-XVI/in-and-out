@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { User } from "../types/user";
-import { getAllUsers, createUser, getUser } from "../services/users";
+import { getAllUsers, createUser, getUser, updateUser } from "../services/users";
 
 /**
  * Get all users 
@@ -66,4 +66,34 @@ export function useGetUser() {
 	};
 
 	return { handleGetUser, loading, error };
+}
+
+
+/**
+ * Update user
+ */
+export function useUpdateUser() {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleUpdateUser = async (
+        id: number,
+        updates: Partial<Omit<User, "id">>
+    ): Promise<User | null> => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const updatedUser = await updateUser(id, updates);
+            return updatedUser;
+        } catch (err) {
+            console.error("Error actualizando usuario:", err);
+            setError("Ocurrió un problema al actualizar el usuario");
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { handleUpdateUser, loading, error };
 }
