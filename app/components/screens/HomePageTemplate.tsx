@@ -3,8 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import MainTabBar from '../../components/navigation/MainTabBar';
 import Button from '../../components/common/Button'; // Ajusta la ruta si es necesario
 import { useUser } from '../../context/UserContext';
-import History from '../../components/screens/History'; // Importa History
-import Search from '../../components/screens/Search';
 
 interface TemplateProps {
   activeTab: string;
@@ -30,21 +28,10 @@ const HomePageTemplate = ({
   sectionTitle = "Texto cambio"
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
-  const [showHistory, setShowHistory] = useState(false); // Estado para mostrar History
   const { user } = useUser();
 
   // Si headerTitle no está definido, muestra "Hola, <usuario>"
   const displayTitle = headerTitle ?? `Hola, ${user?.name ?? 'Usuario'}`;
-
-  // Maneja el tab de historial desde aquí
-  const handleTabBarPress = (tab: string) => {
-    if (tab === 'list') {
-      setShowHistory(prev => !prev);
-    } else {
-      setShowHistory(false);
-      onTabPress(tab);
-    }
-  };
 
   return (
     <View style={styles.root}>
@@ -84,23 +71,14 @@ const HomePageTemplate = ({
       </View>
       {/* Content Card */}
       <View style={styles.contentCard}>
-        {showHistory ? (
-          <History />
-        ) : activeTab === 'search' ? (
-          <Search />
-        ) : (
-          <>
-            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-            {children}
-          </>
-        )}
+        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+        {children}
       </View>
       {/* Bottom Navigation */}
       <View style={styles.bottomBar}>
-        <MainTabBar activeTab={showHistory ? 'list' : activeTab} onTabPress={handleTabBarPress} />
+        <MainTabBar activeTab={activeTab} onTabPress={onTabPress} />
       </View>
     </View>
-    
   );
 };
 
@@ -181,10 +159,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#5C5C60',
-    fontWeight: '900',
-    fontSize: 28,
+    fontWeight: 'bold',
+    fontSize: 22,
     marginBottom: 12,
-    textAlign: 'center', 
+    textAlign: 'center',
   },
   bottomBar: {
     backgroundColor: '#fff',

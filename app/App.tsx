@@ -17,7 +17,6 @@ import SetPassword from './screens/Password/SetPassword';
 import SetPasswordTwo from './screens/Password/SetPasswordTwo';
 import SetPasswordThree from './screens/Password/SetPasswordThree';
 import { UserProvider } from './context/UserContext';
-import MyProfile from './screens/Profile/MyProfile'; // Asegúrate de importar MyProfile
 
 const Stack = createStackNavigator();
 
@@ -45,7 +44,6 @@ export default function App() {
         <Stack.Screen name="SetPassword" component={SetPassword} />
         <Stack.Screen name="SetPasswordTwo" component={SetPasswordTwo} />
         <Stack.Screen name="SetPasswordThree" component={SetPasswordThree} />
-        <Stack.Screen name="MyProfile" component={MyProfile} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
