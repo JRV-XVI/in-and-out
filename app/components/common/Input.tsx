@@ -6,6 +6,8 @@ type InputProps = TextInputProps & {
   label?: string;
   error?: string;
   containerStyle?: object;
+  validate?: (value: string) => string | null; 
+  onValidationError?: (error: string | null) => void; 
 };
 
 const Input = ({
@@ -13,9 +15,23 @@ const Input = ({
   error,
   containerStyle,
   secureTextEntry,
+  validate,
+  onValidationError,
+  onChangeText,
+  value,
   ...props
 }: InputProps) => {
   const [secure, setSecure] = useState(!!secureTextEntry);
+  const [internalError, setInternalError] = useState<string | null>(null);
+
+  const handleChangeText = (text: string) => {
+    if (validate) {
+      const validationError = validate(text);
+      setInternalError(validationError);
+      if (onValidationError) onValidationError(validationError);
+    }
+    if (onChangeText) onChangeText(text);
+  };
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -25,6 +41,8 @@ const Input = ({
           style={styles.input}
           placeholderTextColor="#fff"
           secureTextEntry={secure}
+          value={value}
+          onChangeText={handleChangeText}
           {...props}
         />
         {secureTextEntry && (
@@ -41,7 +59,7 @@ const Input = ({
           </TouchableOpacity>
         )}
       </View>
-      {error && <Text style={styles.error}>{error}</Text>}
+      {(error || internalError) && <Text style={styles.error}>{error || internalError}</Text>}
     </View>
   );
 };
@@ -49,7 +67,7 @@ const Input = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   label: {
     color: '#333',

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import type { NavigationProp } from '@react-navigation/native';
-import { useUser } from '../../context/UserContext'; // Ajusta la ruta si es necesario
+import { useUser } from '../../context/UserContext'; 
 
 type SideBarProps = {
   navigation: NavigationProp<any>;
@@ -25,7 +25,7 @@ const SideBar = ({ navigation }: SideBarProps) => {
 
       {/* Opciones */}
       <View style={styles.menuSection}>
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation?.navigate('Profile')}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation?.navigate('MyProfile')}>
           <Ionicons name="person-outline" size={24} color="#fff" style={styles.menuIcon} />
           <Text style={styles.menuText}>Mi perfil</Text>
         </TouchableOpacity>
@@ -69,12 +69,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderBottomLeftRadius: 32,
     alignSelf: 'flex-end', // Para alinear a la derecha
-    // Quita flex: 1 para que no ocupe todo el ancho
-    shadowColor: '#000',
-    shadowOffset: { width: -2, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
   },
   profileSection: {
     alignItems: 'center',
