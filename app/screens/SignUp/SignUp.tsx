@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
+import Alert from '../../components/common/Alert';
 import { useNavigation } from '@react-navigation/native';
 import { useCreateUser } from '../../hooks/useUsers';
+import { validateEmail, validatePassword, validatePhone } from '../../utils/validators';
+import { normalizeEmail } from '../../utils/normalize';
 
 const userTypes = [
   { value: 1, label: "donante" },
   { value: 2, label: "responsable" },
 ] as const;
-
 
 const SignUp = () => {
   const navigation = useNavigation();
@@ -21,26 +23,47 @@ const SignUp = () => {
   const [userType, setUserType] = useState<number | null>(null);
   const { handleCreateUser, loading, error } = useCreateUser();
 
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  // Estados para Alert personalizado
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
+
   const handleSignUp = async () => {
     if (!name || !email || !password || !phone || !userType) {
-      Alert.alert("Error", "Por favor llena todos los campos");
+      showAlert("Por favor llena todos los campos", "error");
+      return;
+    }
+    if (emailError || passwordError || phoneError) {
+      showAlert("Por favor corrige los errores en el formulario", "error");
       return;
     }
 
     const newUser = await handleCreateUser({
       name,
-      email,
+      email: normalizeEmail(email),
       password,
       phone: Number(phone),
       userType
     });
 
     if (newUser) {
-      Alert.alert("Éxito", "Usuario creado correctamente");
-      console.log("New user");
-      navigation.navigate('LaunchScreen' as never); // Change this to a real screen *IMPORTANT*
+      showAlert("Usuario creado correctamente", "success");
+      setTimeout(() => {
+        setAlertVisible(false);
+        navigation.navigate('LaunchScreen' as never);
+      }, 1200);
     } else if (error) {
-      Alert.alert("Error", error);
+      showAlert(error, "error");
     }
   };
 
@@ -49,6 +72,12 @@ const SignUp = () => {
       title="Crear Cuenta"
       onBackPress={() => navigation.goBack()}
     >
+      <Alert
+        visible={alertVisible}
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertVisible(false)}
+      />
       <Input
         label="Nombre"
         value={name}
@@ -65,6 +94,8 @@ const SignUp = () => {
         placeholderTextColor="#c0bbbbff"
         keyboardType="email-address"
         autoCapitalize="none"
+        validate={validateEmail}
+        onValidationError={setEmailError}
       />
       <Input
         label="Contraseña"
@@ -74,6 +105,8 @@ const SignUp = () => {
         placeholderTextColor="#c0bbbbff"
         secureTextEntry
         autoCapitalize="none"
+        validate={validatePassword}
+        onValidationError={setPasswordError}
       />
       <Input
         label="Número de teléfono"
@@ -82,6 +115,8 @@ const SignUp = () => {
         placeholder="Ingresa tu número"
         placeholderTextColor="#c0bbbbff"
         keyboardType="phone-pad"
+        validate={validatePhone}
+        onValidationError={setPhoneError}
       />
       <Text style={styles.label}>Tipo de usuario</Text>
       <View style={styles.userTypeContainer}>
