@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import SolicitudCard from '../../components/specialCards/SolicitudCard';
-import Filter from '../../components/common/Filter';
 import Alert from '../../components/common/Alert';
 
 const proyectos = [
@@ -35,8 +35,8 @@ const proyectos = [
   },
 ];
 
-const History = () => {
-  const [filter, setFilter] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
+const Search = () => {
+  const [query, setQuery] = useState('');
 
   // Estados para Alert personalizado
   const [alertVisible, setAlertVisible] = useState(false);
@@ -49,13 +49,14 @@ const History = () => {
     setAlertVisible(true);
   };
 
-  // Opcional: filtrar o ordenar proyectos según el filtro
-  let proyectosFiltrados = [...proyectos];
-  if (filter === 'Ascendente') {
-    proyectosFiltrados.sort((a, b) => a.carga.localeCompare(b.carga));
-  } else if (filter === 'Descendente') {
-    proyectosFiltrados.sort((a, b) => b.carga.localeCompare(a.carga));
-  }
+  const filtered = proyectos.filter(
+    p =>
+      p.tipo.toLowerCase().includes(query.toLowerCase()) ||
+      p.carga.toLowerCase().includes(query.toLowerCase()) ||
+      p.voluntarios.toLowerCase().includes(query.toLowerCase()) ||
+      p.proyecto.toLowerCase().includes(query.toLowerCase()) ||
+      p.fecha.includes(query)
+  );
 
   return (
     <View style={styles.root}>
@@ -67,24 +68,37 @@ const History = () => {
       />
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Historial De Proyectos</Text>
-        <Filter active={filter} onChange={setFilter} />
-      </View>
-      {/* Lista de proyectos */}
-      <ScrollView style={styles.scroll}>
-        {proyectosFiltrados.map((p, idx) => (
-          <SolicitudCard
-            key={idx}
-            fecha={p.fecha}
-            tipo={p.tipo}
-            carga={p.carga}
-            voluntarios={p.voluntarios}
-            proyecto={p.proyecto}
-            onAccept={() => {
-              showAlert(`Aceptaste el proyecto del ${p.fecha}`, 'success');
-            }}
+        <Text style={styles.headerTitle}>Filtra Tu Búsqueda</Text>
+        <View style={styles.searchBar}>
+          <Ionicons name="arrow-back" size={22} color="#fff" style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.input}
+            placeholder="Busca en SHULKERHOUSE"
+            placeholderTextColor="#ddd"
+            value={query}
+            onChangeText={setQuery}
           />
-        ))}
+        </View>
+      </View>
+      {/* Lista de resultados */}
+      <ScrollView style={styles.scroll}>
+        {filtered.length === 0 ? (
+          <Text style={{ textAlign: 'center', color: '#888', marginTop: 20 }}>No hay resultados</Text>
+        ) : (
+          filtered.map((p, idx) => (
+            <SolicitudCard
+              key={idx}
+              fecha={p.fecha}
+              tipo={p.tipo}
+              carga={p.carga}
+              voluntarios={p.voluntarios}
+              proyecto={p.proyecto}
+              onAccept={() => {
+                showAlert(`Aceptaste el proyecto del ${p.fecha}`, 'success');
+              }}
+            />
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -119,20 +133,24 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     color: '#5C5C60',
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  filterRow: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: '#5C5C60',
+    borderRadius: 22,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
-  filterText: {
-    color: '#5C5C60',
-    fontSize: 14,
-  },
-  filterActive: {
-    color: '#CE0E2D',
-    fontWeight: 'bold',
+  input: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 16,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,
@@ -141,4 +159,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default History;
+export default Search;

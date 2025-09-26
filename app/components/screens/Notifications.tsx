@@ -56,12 +56,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderBottomLeftRadius: 32,
     alignSelf: 'flex-end', // Para alinear a la derecha
-    // Quita flex: 1 para que no ocupe todo el ancho
-    shadowColor: '#000',
-    shadowOffset: { width: -2, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
   },
   header: {
     flexDirection: 'row',
