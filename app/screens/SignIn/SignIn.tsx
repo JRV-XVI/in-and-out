@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useNavigation } from '@react-navigation/native';
 import { useGetUser } from '../../hooks/useUsers';
 import { useUser } from '../../context/UserContext'; 
-import { normalizeEmail } from '../../utils/normalize';
-import Alert from '../../components/common/Alert'; // Importa tu componente
 
 const SignIn = () => {
   const navigation = useNavigation();
@@ -15,7 +13,6 @@ const SignIn = () => {
   const [password, setPassword] = useState('');
   const { handleGetUser, loading, error } = useGetUser();
   const { setUser } = useUser(); 
-
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
@@ -26,13 +23,13 @@ const SignIn = () => {
     setAlertVisible(true);
   };
 
+
   const handleSignIn = async () => {
     if (!email || !password) {
-      showAlert("Por favor llena todo los campos", "error");
+      Alert.alert("Error", "Por favor llena todo los campos")
       return;
     }
-    const normalizedEmail = normalizeEmail(email);
-    const user = await handleGetUser(normalizedEmail, password);
+    const user = await handleGetUser(email, password);
     if (user) {
       setUser(user);
       showAlert("Inicio de sesión exitoso", "success");
@@ -53,9 +50,9 @@ const SignIn = () => {
         }
       }, 2000);
     } else if (error) {
-      showAlert(error, "error");
+      Alert.alert("Error", error);
     } else {
-      showAlert("Usuario o contraseña incorrectos", "error");
+      Alert.alert("Error", "Usuario o contraseña incorrectos");
     }
   };
 
@@ -64,13 +61,6 @@ const SignIn = () => {
       title="Iniciar Sesión"
       onBackPress={() => navigation.navigate('LaunchScreenTwo' as never)}
     >
-      <Alert
-        visible={alertVisible}
-        message={alertMessage}
-        type={alertType}
-        onClose={() => setAlertVisible(false)}
-      />
-
       <Text style={styles.welcomeTitle}>Bienvenido</Text>
       <Text style={styles.welcomeDesc}>
         Nos alegra tenerte aquí. Tu espacio seguro para gestionar donaciones está aquí, con ShulkerHouse.
@@ -107,6 +97,7 @@ const SignIn = () => {
       </TouchableOpacity>
 
       <View style={styles.signInButtonContainer}>
+        {/*<Button title="Iniciar Sesión" style={styles.signInButton} onPress={() => { /* lógica de signIn */}
         <Button
           title={loading ? "Cargando..." : "Iniciar Sesión"}
           onPress={handleSignIn}
