@@ -16,7 +16,6 @@ const SignIn = () => {
   const { handleGetUser, loading, error } = useGetUser();
   const { setUser } = useUser(); 
 
-  // Estados para el Alert personalizado
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
@@ -36,20 +35,23 @@ const SignIn = () => {
     const user = await handleGetUser(normalizedEmail, password);
     if (user) {
       setUser(user);
-      switch (user.userType) {
-        case 1:
-          navigation.navigate('HomePageDonador' as never);
-          break;
-        case 2:
-          navigation.navigate('HomePageResponsable' as never);
-          break;
-        case 3:
-          navigation.navigate('HomePageAdmin' as never);
-          break;
-        default:
-          showAlert("Tu tipo de usuario no está asignado correctamente", "info");
-          break;
-      }
+      showAlert("Inicio de sesión exitoso", "success");
+      setTimeout(() => {
+        switch (user.userType) {
+          case 1:
+            navigation.navigate('HomePageDonador' as never);
+            break;
+          case 2:
+            navigation.navigate('HomePageResponsable' as never);
+            break;
+          case 3:
+            navigation.navigate('HomePageAdmin' as never);
+            break;
+          default:
+            showAlert("Tu tipo de usuario no está asignado correctamente", "info");
+            break;
+        }
+      }, 2000);
     } else if (error) {
       showAlert(error, "error");
     } else {
