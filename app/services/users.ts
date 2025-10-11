@@ -11,18 +11,17 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 /**
- * Get user by email and password
+ * Get user profile by auth user ID
  */
-export async function getUser(email: string, password: string): Promise<User | null> {
+export async function getUserProfile(authUserId: string): Promise<User | null> {
 	const { data, error } = await supabase
 		.from("users")
 		.select("*")
-		.eq("email", email)
-		.eq("password", password)
+		.eq("auth_user_id", authUserId)
 		.single();
 
 	if (error) {
-		console.error("Error obteniendo usuario:", error);
+		console.error("Error obteniendo perfil de usuario:", error);
 		return null;
 	}
 
@@ -30,7 +29,48 @@ export async function getUser(email: string, password: string): Promise<User | n
 }
 
 /**
- * New user
+ * Get user by email (for profile lookup)
+ */
+export async function getUserByEmail(email: string): Promise<User | null> {
+	const { data, error } = await supabase
+		.from("users")
+		.select("*")
+		.eq("email", email)
+		.single();
+
+	if (error) {
+		console.error("Error obteniendo usuario por email:", error);
+		return null;
+	}
+
+	return data as User;
+}
+
+/**
+ * Create user profile (after auth registration)
+ */
+export async function createUserProfile(user: Omit<User, "id">, authUserId: string): Promise<User | null> {
+	const userData = {
+		...user,
+		auth_user_id: authUserId
+	};
+
+	const { data, error } = await supabase
+		.from("users")
+		.insert(userData)
+		.select()
+		.single();
+
+	if (error) {
+		console.error("Error creando perfil de usuario:", error);
+		return null;
+	}
+
+	return data as User;
+}
+
+/**
+ * New user (legacy - mantener para compatibilidad)
  */
 export async function createUser(user: Omit<User, "id">): Promise<User | null> {
 	const { data, error } = await supabase

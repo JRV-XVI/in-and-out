@@ -51,19 +51,20 @@ const SignUp = () => {
     const newUser = await handleCreateUser({
       name,
       email: normalizeEmail(email),
-      password,
       phone: Number(phone),
       userType
-    });
+    }, password);
 
-    if (newUser) {
-      showAlert("Usuario creado correctamente", "success");
+    if (newUser && newUser.profile) {
+      showAlert("Usuario creado correctamente. Revisa tu email para verificar tu cuenta.", "success");
       setTimeout(() => {
         setAlertVisible(false);
         navigation.navigate('LaunchScreen' as never);
-      }, 1200);
+      }, 2000);
     } else if (error) {
       showAlert(error, "error");
+    } else {
+      showAlert("Error al crear la cuenta. Intenta nuevamente.", "error");
     }
   };
 

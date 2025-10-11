@@ -4,7 +4,7 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useNavigation } from '@react-navigation/native';
-import { useGetUser } from '../../hooks/useUsers';
+import { useSignInUser } from '../../hooks/useUsers';
 import { useUser } from '../../context/UserContext'; 
 import { normalizeEmail } from '../../utils/normalize';
 import Alert from '../../components/common/Alert'; // Importa tu componente
@@ -13,7 +13,7 @@ const SignIn = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { handleGetUser, loading, error } = useGetUser();
+  const { handleSignInUser, loading, error } = useSignInUser();
   const { setUser } = useUser(); 
 
   const [alertVisible, setAlertVisible] = useState(false);
@@ -32,12 +32,13 @@ const SignIn = () => {
       return;
     }
     const normalizedEmail = normalizeEmail(email);
-    const user = await handleGetUser(normalizedEmail, password);
-    if (user) {
-      setUser(user);
+    const result = await handleSignInUser(normalizedEmail, password);
+    
+    if (result && result.profile) {
+      setUser(result.profile);
       showAlert("Inicio de sesión exitoso", "success");
       setTimeout(() => {
-        switch (user.userType) {
+        switch (result.profile!.userType) {
           case 1:
             navigation.navigate('HomePageDonador' as never);
             break;
