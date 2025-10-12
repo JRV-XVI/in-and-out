@@ -21,6 +21,7 @@ import SetPasswordThree from './screens/Password/SetPasswordThree';
 import { UserProvider } from './context/UserContext';
 import MyProfile from './screens/Profile/MyProfile';
 import Settings from './screens/Profile/Settings';
+import MyVehicles from './screens/Responsable/MyVehicles';
 
 const Stack = createStackNavigator();
 
@@ -62,6 +63,7 @@ export default function App() {
               <Stack.Screen name="SetPasswordThree" component={SetPasswordThree} />
               <Stack.Screen name="MyProfile" component={MyProfile} />
               <Stack.Screen name="Settings" component={Settings} />
+              <Stack.Screen name="MyVehicles" component={MyVehicles} />
             </Stack.Navigator>
             <StatusBar style="auto" />
           </NavigationContainer>
