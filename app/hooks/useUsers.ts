@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { User } from "../types/user";
-import { getAllUsers, createUser, getUser, updateUser } from "../services/users";
+import { getAllUsers, createUser, createUserProfile, getUserProfile, getUserByEmail, updateUser } from "../services/users";
+import { useAuth } from "./useAuth";
 
 /**
  * Get all users 
@@ -18,18 +19,33 @@ export function useAllUsers() {
 }
 
 /**
- * Create new user
+ * Create new user with authentication
  */
 export function useCreateUser() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const handleCreateUser = async (userData: Omit<User, "id">) => {
+	const { handleSignUp } = useAuth();
+
+	const handleCreateUser = async (userData: Omit<User, "id">, password: string) => {
 		setLoading(true);
 		setError(null);
 
 		try {
-			const newUser = await createUser(userData);
-			return newUser;
+			// Registrar en Supabase Auth
+			const authResult = await handleSignUp(userData.email, password);
+			
+			if (!authResult.success || !authResult.data?.user) {
+				setError("Error al crear la cuenta de autenticación");
+				return null;
+			}
+
+			// Crear perfil del usuario
+			const userProfile = await createUserProfile(userData, authResult.data.user.id);
+			
+			return {
+				authUser: authResult.data.user,
+				profile: userProfile
+			};
 		} catch (err) {
 			console.error("Error en registro:", err);
 			setError("Ocurrió un problema al registrar el usuario");
@@ -43,19 +59,33 @@ export function useCreateUser() {
 }
 
 /**
- * Get user with email and password
+ * Sign in user with auth and get profile
  */
-export function useGetUser() {
+export function useSignInUser() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const { handleSignIn } = useAuth();
 
-	const handleGetUser = async (email: string, password: string): Promise<User | null> => {
+	const handleSignInUser = async (email: string, password: string): Promise<{ authUser: any; profile: User | null } | null> => {
 		setLoading(true);
 		setError(null);
 
 		try {
-			const user = await getUser(email, password);
-			return user;
+			// Autenticar con Supabase Auth
+			const authResult = await handleSignIn(email, password);
+			
+			if (!authResult.success || !authResult.data?.user) {
+				setError("Credenciales incorrectas");
+				return null;
+			}
+
+			// Obtener perfil del usuario
+			const profile = await getUserProfile(authResult.data.user.id);
+			
+			return {
+				authUser: authResult.data.user,
+				profile
+			};
 		} catch (err) {
 			console.error("Error al ingresar:", err);
 			setError("Ocurrió un problema con el ingreso del usuario");
@@ -65,7 +95,7 @@ export function useGetUser() {
 		}
 	};
 
-	return { handleGetUser, loading, error };
+	return { handleSignInUser, loading, error };
 }
 
 

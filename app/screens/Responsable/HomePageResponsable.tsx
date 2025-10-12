@@ -15,25 +15,31 @@ const solicitudesPrueba = [
 const HomePageResponsable = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('home');
-  const [selectedView, setSelectedView] = useState<'entrada' | 'salida'>('entrada');
+  const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida'>('Entrada');
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
-    if (tab === 'home') setSelectedView('entrada');
+    if (tab === 'home') setSelectedView('Entrada');
   };
+
+  // 🔹 Filtrar solicitudes según "Entrada" o "Salida"
+  const solicitudesFiltradas = solicitudesPrueba.filter(
+    (item) => item.proyecto.toLowerCase() === selectedView.toLowerCase()
+  );
 
   return (
     <HomePageTemplate
       activeTab={activeTab}
       onTabPress={handleTabPress}
-      onPrimaryAction={() => setSelectedView('entrada')}
-      onSecondaryAction={() => setSelectedView('salida')}
+      onPrimaryAction={() => setSelectedView('Entrada')}
+      onSecondaryAction={() => setSelectedView('Salida')}
+      headerTitle="Hola, { Responsable }"
       primaryButtonText="Entrada"
       secondaryButtonText="Salida"
-      sectionTitle="Solicitudes Abiertas"
+      sectionTitle={`Solicitudes de ${selectedView}`}
     >
       <FlatList
-        data={solicitudesPrueba}
+        data={solicitudesFiltradas}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <SolicitudCard
@@ -48,15 +54,13 @@ const HomePageResponsable = () => {
         contentContainerStyle={{ paddingBottom: 120 }}
       />
 
-      {/* Botón flotante 
+      {/* Botón flotante */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('MyVehicles' as never)}
       >
         <Ionicons name="car-outline" size={28} color="white" />
       </TouchableOpacity>
-      */}
-
     </HomePageTemplate>
   );
 };
@@ -64,7 +68,7 @@ const HomePageResponsable = () => {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    bottom: 80, // justo encima de la tab bar
+    bottom: 20, // justo encima de la tab bar
     alignSelf: 'center',
     backgroundColor: '#CE0E2D',
     borderRadius: 40,

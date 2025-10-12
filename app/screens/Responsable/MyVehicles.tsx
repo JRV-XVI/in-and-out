@@ -31,7 +31,7 @@ const MyVehicles = () => {
       alert('Por favor ingresa una placa válida.');
       return;
     }
-    
+
     const nuevoVehiculo = {
       id: (vehiculos.length + 1).toString(),
       tipo,

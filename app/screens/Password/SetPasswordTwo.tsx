@@ -16,12 +16,15 @@ const SetPasswordTwo = () => {
     >
       <View style={styles.contentContainer}>
         <Text style={styles.description}>
-          Confirma tu identidad. Identifica el token que se te envió por correo.
+          Hemos enviado un enlace a tu correo electrónico. 
+          {'\n\n'}
+          Haz clic en el enlace del correo para continuar con el cambio de contraseña.
+          {'\n\n'}
+          Si no recibes el correo, revisa tu carpeta de spam.
         </Text>
-        <Token value={token} onChange={setToken} />
         <Button
-          title="Continuar"
-          onPress={() => {navigation.navigate('SetPasswordThree' as never)}}
+          title="Volver al inicio"
+          onPress={() => {navigation.navigate('SignIn' as never)}}
           style={styles.button}
         />
       </View>

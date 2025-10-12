@@ -1,8 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'; // <-- Nuevo import
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 import OnBoarding from './screens/OnBoarding/OnBoarding';
 import OnBoardingTwo from './screens/OnBoarding/OnBoardingTwo';
 import OnBoardingThree from './screens/OnBoarding/OnBoardingThree';
@@ -20,15 +21,26 @@ import SetPasswordThree from './screens/Password/SetPasswordThree';
 import { UserProvider } from './context/UserContext';
 import MyProfile from './screens/Profile/MyProfile';
 import Settings from './screens/Profile/Settings';
+import MyVehicles from './screens/Responsable/MyVehicles';
 
 const Stack = createStackNavigator();
 
 export default function App() {
+  // Configuración del deep linking
+  const linking = {
+    prefixes: ['exp://dzsvp48-anonymous-8081.exp.direct'], // Este es nuestro esquema de URL personalizado
+    config: {
+      screens: {
+        SetPasswordThree: 'reset-password', // Cuando llegue exp://reset-password, navegar a SetPasswordThree
+      },
+    },
+  };
+
   return (
     <UserProvider>
       <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#CE0E2D' }}>
-          <NavigationContainer>
+          <NavigationContainer linking={linking}>
             <Stack.Navigator
               screenOptions={{
                 headerShown: false,
@@ -51,6 +63,7 @@ export default function App() {
               <Stack.Screen name="SetPasswordThree" component={SetPasswordThree} />
               <Stack.Screen name="MyProfile" component={MyProfile} />
               <Stack.Screen name="Settings" component={Settings} />
+              <Stack.Screen name="MyVehicles" component={MyVehicles} />
             </Stack.Navigator>
             <StatusBar style="auto" />
           </NavigationContainer>

@@ -4,17 +4,57 @@ import { useNavigation } from '@react-navigation/native';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
-import SetPasswordTwo from './SetPasswordTwo';
+import Alert from '../../components/common/Alert';
+import { usePasswordReset } from '../../hooks/usePasswordReset';
+import { normalizeEmail } from '../../utils/normalize';
 
 const SetPassword = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
+  const { sendResetEmail, loading, error } = usePasswordReset();
+  
+  // Estados para el Alert
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      showAlert('Por favor ingresa tu correo electrónico', 'error');
+      return;
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const success = await sendResetEmail(normalizedEmail);
+    
+    if (success) {
+      showAlert('¡Correo enviado! Revisa tu bandeja de entrada.', 'success');
+      // Navegar a la siguiente pantalla después de un breve delay
+      setTimeout(() => {
+        navigation.navigate('SetPasswordTwo' as never);
+      }, 2000);
+    } else if (error) {
+      showAlert(error, 'error');
+    }
+  };
 
   return (
     <GeneralTemplate
       title="Cambiar contraseña"
       onBackPress={() => navigation.goBack()}
     >
+      <Alert
+        visible={alertVisible}
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertVisible(false)}
+      />
       <View style={styles.contentContainer}>
         <Text style={styles.description}>
           Ingresa el correo que está enlazado a tu{'\n'}
@@ -30,8 +70,8 @@ const SetPassword = () => {
           autoCapitalize="none"
         />
         <Button
-          title="Aceptar"
-          onPress={() => {navigation.navigate('SetPasswordTwo' as never)}}
+          title={loading ? "Enviando..." : "Enviar correo"}
+          onPress={handleResetPassword}
           style={styles.button}
         />
       </View>
