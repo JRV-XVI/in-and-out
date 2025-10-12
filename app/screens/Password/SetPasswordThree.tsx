@@ -1,17 +1,30 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
 import { usePasswordReset } from '../../hooks/usePasswordReset';
+import { useChangePassword } from '../../hooks/useChangePassword';
 
 const SetPasswordThree = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const { changePassword, loading, error } = usePasswordReset();
+  
+  // Verificar si viene desde Settings (usuario autenticado)
+  const fromSettings = (route.params as any)?.fromSettings || false;
+  
+  // Usar el hook correspondiente según el flujo
+  const { changePassword, loading: resetLoading, error: resetError } = usePasswordReset();
+  const { changeUserPassword, loading: changeLoading, error: changeError } = useChangePassword();
+  
+  // Estados unificados
+  const loading = fromSettings ? changeLoading : resetLoading;
+  const error = fromSettings ? changeError : resetError;
   
   // Estados para el Alert
   const [alertVisible, setAlertVisible] = useState(false);
@@ -26,6 +39,11 @@ const SetPasswordThree = () => {
 
   const handleConfirmPassword = async () => {
     // Validaciones básicas
+    if (fromSettings && !currentPassword) {
+      showAlert('Por favor ingresa tu contraseña actual', 'error');
+      return;
+    }
+    
     if (!password || !confirmPassword) {
       showAlert('Por favor llena todos los campos', 'error');
       return;
@@ -41,14 +59,28 @@ const SetPasswordThree = () => {
       return;
     }
 
-    // Intentar cambiar la contraseña
-    const success = await changePassword(password);
+    // Intentar cambiar la contraseña según el flujo
+    let success = false;
+    
+    if (fromSettings) {
+      // Usuario autenticado desde Settings (con validación de contraseña actual)
+      success = await changeUserPassword(password, currentPassword);
+    } else {
+      // Usuario desde recuperación de contraseña
+      success = await changePassword(password);
+    }
     
     if (success) {
       showAlert('¡Contraseña cambiada exitosamente!', 'success');
       // Esperar un poco para mostrar el mensaje y luego navegar
       setTimeout(() => {
-        navigation.navigate('SignIn' as never);
+        if (fromSettings) {
+          // Si viene desde Settings, regresar a Settings
+          navigation.navigate('Settings' as never);
+        } else {
+          // Si viene desde recuperación, ir a SignIn
+          navigation.navigate('SignIn' as never);
+        }
       }, 2000);
     } else if (error) {
       showAlert(error, 'error');
@@ -57,7 +89,7 @@ const SetPasswordThree = () => {
 
   return (
     <GeneralTemplate
-      title="Cambiar contraseña"
+      title={fromSettings ? "Actualizar contraseña" : "Cambiar contraseña"}
       onBackPress={() => navigation.goBack()}
     >
       <Alert
@@ -68,9 +100,25 @@ const SetPasswordThree = () => {
       />
       <View style={styles.contentContainer}>
         <Text style={styles.description}>
-          Ingresa la nueva contraseña que se{'\n'}
-          enlazará a tu cuenta
+          {fromSettings 
+            ? 'Ingresa tu nueva contraseña para actualizar\ntu cuenta'
+            : 'Ingresa la nueva contraseña que se\nenlazará a tu cuenta'
+          }
         </Text>
+        
+        {/* Mostrar campo de contraseña actual solo si viene desde Settings */}
+        {fromSettings && (
+          <Input
+            label="Contraseña Actual"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            placeholder="Ingresa tu contraseña actual"
+            placeholderTextColor="#c0bbbbff"
+            secureTextEntry
+            containerStyle={styles.input}
+          />
+        )}
+        
         <Input
           label="Nueva Contraseña"
           value={password}

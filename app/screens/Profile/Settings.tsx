@@ -11,7 +11,7 @@ const Settings = ({ navigation }: any) => {
           <Ionicons name="notifications-outline" size={32} color="#C8102E" style={styles.icon} />
           <Text style={styles.optionText}>Configuración de notificaciones</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('PasswordConfig')}>
+        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('SetPasswordThree', { fromSettings: true })}>
           <MaterialIcons name="vpn-key" size={32} color="#C8102E" style={styles.icon} />
           <Text style={styles.optionText}>Configuración de contraseña</Text>
         </TouchableOpacity>
