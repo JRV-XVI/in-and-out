@@ -2,6 +2,7 @@ export interface Project {
 	id: string;                    // id (bigint) — uso string para evitar problemas con enteros grandes en JS
 	created_at: string;            // timestamp (ISO string)
 	responsible_id?: string | null;
+	vehicle_id?: string | null;
 	title?: string | null;
 	projectState?: number | null;
 	token?: number | null;         // smallint
