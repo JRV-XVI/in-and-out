@@ -31,6 +31,7 @@ const HomePageTemplate = ({
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
   const [showHistory, setShowHistory] = useState(false); // Estado para mostrar History
+  const [selectedTabBar, setSelectedTabBar] = useState<string | null>(null); // Nuevo estado para tabbar
   const { user } = useUser();
 
   // Si headerTitle no está definido, muestra "Hola, <usuario>"
@@ -38,6 +39,8 @@ const HomePageTemplate = ({
 
   // Maneja el tab de historial desde aquí
   const handleTabBarPress = (tab: string) => {
+    setSelectedButton(null); // Deselecciona los botones primario/secundario
+    setSelectedTabBar(tab); // Selecciona el tabbar
     if (tab === 'list') {
       setShowHistory(prev => !prev);
     } else {
@@ -45,6 +48,26 @@ const HomePageTemplate = ({
       onTabPress(tab);
     }
   };
+
+  const handlePrimaryAction = () => {
+    setSelectedButton('primary');
+    setSelectedTabBar(null); // Deselecciona el tabbar
+    onPrimaryAction();
+  };
+
+  const handleSecondaryAction = () => {
+    setSelectedButton('secondary');
+    setSelectedTabBar(null); // Deselecciona el tabbar
+    onSecondaryAction();
+  };
+
+  // Determina el tab activo para MainTabBar
+  const mainTabBarActive =
+    selectedButton === 'primary' || selectedButton === 'secondary'
+      ? 'none' // <-- Ningún tab visualmente activo
+      : showHistory
+      ? 'list'
+      : selectedTabBar ?? activeTab;
 
   return (
     <View style={styles.root}>
@@ -58,27 +81,21 @@ const HomePageTemplate = ({
         <View style={styles.actionsRow}>
           <Button
             title={primaryButtonText}
-            onPress={() => {
-              setSelectedButton('primary');
-              onPrimaryAction();
-            }}
+            onPress={handlePrimaryAction}
             style={[
               styles.primaryButton,
               selectedButton === 'primary' ? styles.buttonSelected : {},
             ]}
-            textStyle={selectedButton === 'primary' ? { color: 'white' } : { color: 'black' }}
+            textStyle={selectedButton === 'primary' ? { color: 'white' } : { color: 'white' }}
           />
           <Button
             title={secondaryButtonText}
-            onPress={() => {
-              setSelectedButton('secondary');
-              onSecondaryAction();
-            }}
+            onPress={handleSecondaryAction}
             style={[
               styles.secondaryButton,
               selectedButton === 'secondary' ? styles.buttonSelected : {},
             ]}
-            textStyle={selectedButton === 'secondary' ? { color: 'white' } : { color: 'black' }}
+            textStyle={selectedButton === 'secondary' ? { color: 'white' } : { color: 'white' }}
           />
         </View>
       </View>
@@ -97,10 +114,12 @@ const HomePageTemplate = ({
       </View>
       {/* Bottom Navigation */}
       <View style={styles.bottomBar}>
-        <MainTabBar activeTab={showHistory ? 'list' : activeTab} onTabPress={handleTabBarPress} />
+        <MainTabBar
+          activeTab={mainTabBarActive}
+          onTabPress={handleTabBarPress}
+        />
       </View>
     </View>
-    
   );
 };
 

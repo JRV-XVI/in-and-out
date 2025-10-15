@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, FlatList, SafeAreaView } from 'react-native';
-import ProjectCard from '../../components/specialCards/ProjectCard';
+import ProjectCardAdmin from '../../components/specialCards/ProjectCardAdmin';
 
 const sample = [
 	{
@@ -61,7 +61,7 @@ const ProyectPageAdmin = () => {
 			<FlatList
 				data={dataToShow}
 				keyExtractor={(i) => String(i.id)}
-				renderItem={({ item }) => <ProjectCard item={item} />}
+				renderItem={({ item }) => <ProjectCardAdmin item={item} />}
 				contentContainerStyle={{ paddingVertical: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
 			/>

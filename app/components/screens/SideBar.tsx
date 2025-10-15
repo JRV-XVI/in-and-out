@@ -33,18 +33,15 @@ const SideBar = ({ navigation }: SideBarProps) => {
           <Feather name="phone" size={24} color="#fff" style={styles.menuIcon} />
           <Text style={styles.menuText}>Contáctanos</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation?.navigate('Help')}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation?.navigate('About')}>
           <MaterialIcons name="help-outline" size={24} color="#fff" style={styles.menuIcon} />
-          <Text style={styles.menuText}>Ayuda & FAQs</Text>
+          <Text style={styles.menuText}>Nosotros</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.menuItem} onPress={() => navigation?.navigate('Settings')}>
           <Ionicons name="settings-outline" size={24} color="#fff" style={styles.menuIcon} />
           <Text style={styles.menuText}>Configuración</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Línea separadora */}
-      <View style={styles.separator} />
 
       {/* Cerrar sesión */}
       <TouchableOpacity

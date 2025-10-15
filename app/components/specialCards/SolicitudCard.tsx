@@ -9,6 +9,7 @@ interface SolicitudCardProps {
   voluntarios: string;
   proyecto: string;
   onAccept?: () => void;
+  icon?: React.ReactNode; // Nuevo prop para el icono personalizado
 }
 
 const SolicitudCard: React.FC<SolicitudCardProps> = ({
@@ -18,6 +19,7 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
   voluntarios,
   proyecto,
   onAccept,
+  icon,
 }) => {
   return (
     <View style={styles.card}>
@@ -29,12 +31,17 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
 
       {/* Body */}
       <View style={styles.cardBody}>
-        <Ionicons
-          name="alert-circle-outline"
-          size={36}
-          color="red"
-          style={{ marginRight: 10 }}
-        />
+        {/* Usa el icono personalizado si existe, si no muestra el default */}
+        {icon ? (
+          <View style={{ marginRight: 10 }}>{icon}</View>
+        ) : (
+          <Ionicons
+            name="alert-circle-outline"
+            size={36}
+            color="red"
+            style={{ marginRight: 10 }}
+          />
+        )}
 
         <View style={{ flex: 1 }}>
           <Text><Text style={styles.bold}>Tipo: </Text>{tipo}</Text>

@@ -1,163 +1,327 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Token from '../common/Token';
+import Button from '../common/Button';
 
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
+interface ProjectCardProps {
+  type: 'entrada' | 'salida';
+  date: string;
+  donors: number;
+  vehicleType: string;
+  address: string;
+  donorName: string;
+  products: string[];
+  status: 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado';
+  tokens: number[];
+  onStart?: () => void;
 }
 
-type Props = {
-  item: {
-    id: string | number;
-    title: string;
-    subtitle?: string;
-    date?: string;
-    image?: any;
-    icon?: string;
-    status?: 'Confirmación' | 'Recolección' | 'Recolectado' | 'Finalizado';
-    state?: 'activo' | 'pendiente';
-    meta?: string[];
-    vehiculo?: string[];
-  };
+const statusLabels = {
+  confirmacion: 'Confirmación',
+  en_recoleccion: 'En recolección',
+  recolectado: 'Recolectado',
+  finalizado: 'Finalizado',
 };
 
-const statusOrder = ['Confirmación', 'Recolección', 'Recolectado', 'Finalizado'];
+const statusOrder = ['confirmacion', 'en_recoleccion', 'recolectado', 'finalizado'];
 
-export default function ProjectCard({ item }: Props) {
+const ProjectCard: React.FC<ProjectCardProps> = ({
+  type,
+  date,
+  donors,
+  vehicleType,
+  address,
+  donorName,
+  products,
+  status,
+  tokens,
+  onStart,
+}) => {
   const [expanded, setExpanded] = useState(false);
-  const indicatorIndex = Math.max(0, statusOrder.indexOf(item.status || 'confirmacion'));
+  const [tokenInput, setTokenInput] = useState(""); // Estado para el input de token
+  const isEntrada = type === 'entrada';
+  const currentStatusIndex = statusOrder.indexOf(status);
 
-  function toggle() {
-    // animate layout change
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded((v) => !v);
-  }
+  const iconName = isEntrada ? 'arrow-down-circle' : 'arrow-up-circle';
+  const iconColor = isEntrada ? '#CE0E2D' : '#5C5C60';
+  const activeColor = isEntrada ? '#CE0E2D' : '#5C5C60';
 
   return (
-    <TouchableOpacity activeOpacity={0.95} onPress={toggle} style={styles.container}>
-
-      <View style={[styles.card, expanded ? styles.cardExpanded : null]}>
-        {item.icon ? (
-          <View style={[styles.thumbnail, styles.iconThumb]}>
-            <MaterialIcons name={item.icon as any} size={34} color="#fff" />
+    <TouchableOpacity
+      style={[styles.card, expanded && styles.cardActive, expanded && { borderColor: activeColor }]}
+      activeOpacity={0.95}
+      onPress={() => setExpanded((v) => !v)}
+    >
+      {/* Header Section */}
+      <View style={styles.headerContainer}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>
+            Proyecto {isEntrada ? 'Entrada' : 'Salida'}
+          </Text>
+          <View style={[styles.dateBadge, { backgroundColor: activeColor }]}>
+            <Text style={styles.dateText}>{date}</Text>
           </View>
-        ) : item.image ? (
-          <Image source={item.image} style={styles.thumbnail} resizeMode="cover" />
-        ) : (
-          <View style={[styles.thumbnail, styles.iconThumb]}>
-            <MaterialIcons name="local-shipping" size={34} color="#fff" />
+        </View>
+
+        <View style={styles.headerRow}>
+          <View style={[styles.iconCircle, { borderColor: activeColor }]}>
+            <Ionicons 
+              name={iconName} 
+              size={42} 
+              color={expanded ? activeColor : '#888'} 
+            />
           </View>
-        )}
-
-        <View style={styles.content}>
-          <View style={styles.rowTop}>
-            <Text style={styles.title}>{item.title}</Text>
-            <View style={styles.dateBadge}><Text style={styles.dateText}>{item.date}</Text></View>
+          <View style={styles.infoRow}>
+            <View style={styles.infoLine}>
+              <Text style={styles.label}>Destinos</Text>
+              <Text style={styles.separator}>————</Text>
+              <Text style={styles.value}>{donors} donadores</Text>
+            </View>
+            <View style={styles.infoLine}>
+              <Text style={styles.label}>Vehiculo</Text>
+              <Text style={styles.separator}>————</Text>
+              <Text style={styles.value}>{vehicleType}</Text>
+            </View>
           </View>
-
-          {/* compact view shows subtitle and a vehicle line if present */}
-          <Text style={styles.subtitle} numberOfLines={expanded ? 4 : 1}>{item.subtitle}</Text>
-
-          {/* show details only when expanded */}
-          {expanded && (
-            <>
-                  {item.state === 'pendiente' ? (
-                    // when pendiente, hide status and show a button (empty logic for now)
-                    <>
-                      {item.meta && (
-                        <View style={styles.metaRow}>
-                          {item.meta.map((m, i) => (
-                            <Text key={i} style={styles.metaText}>{m}</Text>
-                          ))}
-                        </View>
-                      )}
-
-                      {item.vehiculo && (
-                        <View style={styles.metaRow}>
-                          {item.vehiculo.map((m, i) => (
-                            <Text key={i} style={styles.metaText}>{m}</Text>
-                          ))}
-                        </View>
-                      )}
-
-                      <View style={styles.pendingRow}>
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => { /* empty for now */ }}>
-                          <Text style={styles.actionText}>Aceptar</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View style={styles.statusRow}>
-                        <View style={styles.dots}>
-                          {statusOrder.map((s, i) => (
-                            <View key={s} style={[styles.dot, i <= indicatorIndex ? styles.dotActive : null]} />
-                          ))}
-                        </View>
-
-                        <Text style={styles.statusText}>{item.status ?? 'confirmacion'}</Text>
-                      </View>
-
-                      {item.meta && (
-                        <View style={styles.metaRow}>
-                          {item.meta.map((m, i) => (
-                            <Text key={i} style={styles.metaText}>{m}</Text>
-                          ))}
-                        </View>
-                      )}
-
-                      {item.vehiculo && (
-                        <View style={styles.metaRow}>
-                          {item.vehiculo.map((m, i) => (
-                            <Text key={i} style={styles.metaText}>{m}</Text>
-                          ))}
-                        </View>
-                      )}
-                    </>
-                  )}
-            </>
-          )}
         </View>
       </View>
+
+      {/* Expanded Content */}
+      {expanded && (
+        <View style={styles.expandedBox}>
+          {/* Status Progress Bar */}
+          <View style={styles.statusContainer}>
+            <Text style={styles.sectionTitle}>Estatus de Viaje</Text>
+            <View style={styles.statusRow}>
+              {statusOrder.map((statusKey, idx) => (
+                <View key={statusKey} style={styles.statusItem}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      idx <= currentStatusIndex && [
+                        styles.statusDotActive,
+                        { backgroundColor: activeColor },
+                      ],
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.statusLabel,
+                      idx === currentStatusIndex && [
+                        styles.statusLabelActive,
+                        { color: activeColor },
+                      ],
+                    ]}
+                  >
+                    {statusLabels[statusKey as keyof typeof statusLabels]}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Details Section */}
+          <View style={styles.details}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Dirección:</Text>
+              <Text style={styles.detailText}>{address}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Donador:</Text>
+              <Text style={styles.detailText}>{donorName}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Productos:</Text>
+              <Text style={styles.detailText}>{products.join(', ')}</Text>
+            </View>
+          </View>
+
+          {/* Token Section */}
+          <View style={styles.tokenSection}>
+            <Text style={styles.sectionTitle}>Token</Text>
+            <View style={styles.tokenRow}>
+              <Token value={tokenInput} onChange={setTokenInput} />
+            </View>
+          </View>
+
+          {/* Start Button */}
+          <TouchableOpacity
+            style={[styles.startBtn, { backgroundColor: activeColor }]}
+            onPress={onStart}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.startBtnText}>Iniciar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 8 },
   card: {
-    marginHorizontal: 20,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    marginVertical: 12,
+    marginHorizontal: 16,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  cardActive: {
+    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  headerContainer: {
+    padding: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#5C5C60',
+  },
+  dateBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  dateText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    marginRight: 16,
+  },
+  infoRow: {
+    flex: 1,
+  },
+  infoLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  label: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  separator: {
+    color: '#D0D0D0',
+    fontSize: 10,
+    marginHorizontal: 6,
+  },
+  value: {
+    color: '#5C5C60',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  expandedBox: {
+    backgroundColor: '#F8F8F8',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+    padding: 16,
+  },
+  statusContainer: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5C5C60',
+    marginBottom: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 4,
+  },
+  statusItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statusDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#D0D0D0',
+    marginBottom: 4,
+  },
+  statusDotActive: {
+    elevation: 2,
+  },
+  statusLabel: {
+    fontSize: 11,
+    color: '#888',
+    textAlign: 'center',
+  },
+  statusLabelActive: {
+    fontWeight: 'bold',
+  },
+  details: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    marginBottom: 12,
   },
-  cardExpanded: { backgroundColor: '#fff' },
-  thumbnail: { width: 70, height: 70, borderRadius: 8, marginRight: 12, backgroundColor: '#eee' },
-  iconThumb: { backgroundColor: '#ce0e2d', justifyContent: 'center', alignItems: 'center' },
-  content: { flex: 1 },
-  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700', color: '#333', flex: 1 },
-  dateBadge: { backgroundColor: '#ce0e2d', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginLeft: 8 },
-  dateText: { color: '#fff', fontSize: 12 },
-  subtitle: { color: '#666', marginTop: 6 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, justifyContent: 'space-between' },
-  dots: { flexDirection: 'row', alignItems: 'center' },
-  dot: { width: 10, height: 10, borderRadius: 20, backgroundColor: '#e0e0e0', marginRight: 6 },
-  dotActive: { backgroundColor: '#f19800' },
-  statusText: { color: '#777', fontSize: 12, marginLeft: 8 },
-  metaRow: { marginTop: 8 },
-  metaText: { color: '#999', fontSize: 12 },
-  pendingRow: { marginTop: 20, alignItems: 'center' , marginLeft: -70},
-  actionBtn: { backgroundColor: '#ce0e2d', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  actionText: { color: '#fff', fontWeight: '700' },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5C5C60',
+    marginRight: 6,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#5C5C60',
+    flex: 1,
+  },
+  tokenSection: {
+    marginBottom: 12,
+  },
+  tokenRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  startBtn: {
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  startBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
+
+export default ProjectCard;
