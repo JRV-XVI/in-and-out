@@ -7,6 +7,8 @@ import Card from '../../components/common/Card';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
+import { createProject } from '../../services/projects';
+import { useAuthContext } from '../../context/AuthContext';
 
 interface Articulo {
   id: string;
@@ -15,6 +17,7 @@ interface Articulo {
 }
 
 const HomePageDonador = () => {
+  const { authUser } = useAuthContext();
   const [activeTab, setActiveTab] = useState('home');
   const [selectedView, setSelectedView] = useState<'estadisticas' | 'misDonaciones' | 'registrarDonaciones'>('estadisticas');
 
@@ -30,6 +33,7 @@ const HomePageDonador = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
@@ -157,25 +161,56 @@ const HomePageDonador = () => {
         },
         {
           text: 'Enviar',
-          onPress: () => {
-            // Aquí iría la lógica para enviar la donación
-            console.log({
-              titulo,
-              pesoTotal,
-              articulos: articulosJSON,
-              tipoCarga,
-              fechaExpiracion,
-              notas,
-              direccion,
-              evidencia
-            });
+          onPress: async () => {
+            setIsLoading(true);
+            
+            try {
+              // Mapear tipo de carga a número
+              const loadTypeMap: Record<string, number> = {
+                'Normal': 1,
+                'Delicado': 2,
+                'Frío': 3
+              };
 
-            setAlertMessage('Donación registrada exitosamente');
-            setAlertType('success');
-            setShowAlert(true);
+              // Crear el objeto del proyecto para Supabase
+              const projectData = {
+                title: titulo,
+                weight: parseFloat(pesoTotal),
+                foodList: articulosJSON, // JSON con la lista de artículos
+                loadType: loadTypeMap[tipoCarga] || 1,
+                expirationDate: fechaExpiracion || null,
+                notes: notas || null,
+                direction: direccion,
+                photo: evidencia?.uri || null,
+                projectType: 1, // 1 para donación
+                projectState: 1, // No confirmado
+                creator_id: authUser?.id || null, // ID del donador autenticado
+              };
 
-            // Limpiar formulario
-            limpiarFormulario();
+              // Guardar en Supabase
+              const result = await createProject(projectData);
+
+              if (result) {
+                console.log('Donación creada exitosamente:', result);
+                setAlertMessage('Donación registrada exitosamente');
+                setAlertType('success');
+                setShowAlert(true);
+
+                // Limpiar formulario
+                limpiarFormulario();
+              } else {
+                setAlertMessage('Error al registrar la donación');
+                setAlertType('error');
+                setShowAlert(true);
+              }
+            } catch (error) {
+              console.error('Error al enviar donación:', error);
+              setAlertMessage('Error al registrar la donación');
+              setAlertType('error');
+              setShowAlert(true);
+            } finally {
+              setIsLoading(false);
+            }
           }
         }
       ]
@@ -380,9 +415,9 @@ const HomePageDonador = () => {
 
             {/* Botón enviar */}
             <Button
-              title="Enviar"
+              title={isLoading ? "Enviando..." : "Enviar"}
               onPress={handleEnviar}
-              style={styles.submitButton}
+              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
             />
           </View>
         </ScrollView>
@@ -511,6 +546,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#CE0E2D',
     marginTop: 24,
     paddingVertical: 16,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
 });
 

@@ -23,7 +23,7 @@ const getTipoIcon = (tipo: string) => {
 };
 
 const MyVehicles = ({ navigation }: any) => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('none'); // Cambia 'home' por 'none'
   // Cambia searchText a query para igualar el Search.tsx
   const [query, setQuery] = useState('');
   const [selectedView, setSelectedView] = useState<'list' | 'form'>('list');
@@ -34,7 +34,7 @@ const MyVehicles = ({ navigation }: any) => {
   const [placaError, setPlacaError] = useState<string | null>(null);
 
   const handleTabPress = (tab: string) => {
-    setActiveTab(tab);
+    setActiveTab(tab === 'home' ? 'none' : tab); // Si es 'home', pon 'none'
   };
 
   const handleRegistrar = () => {
@@ -153,7 +153,9 @@ const MyVehicles = ({ navigation }: any) => {
           <FlatList
             data={filteredVehicles}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <VehicleCard data={item} />}
+            renderItem={({ item }) => (
+              <VehicleCard data={item} onDelete={() => {}} /> // <-- Añade onDelete
+            )}
             contentContainerStyle={{ paddingBottom: 40 }}
           />
         </>
