@@ -19,6 +19,7 @@ import SetPassword from './screens/Password/SetPassword';
 import SetPasswordTwo from './screens/Password/SetPasswordTwo';
 import SetPasswordThree from './screens/Password/SetPasswordThree';
 import { UserProvider } from './context/UserContext';
+import { AuthProvider } from './context/AuthContext';
 import MyProfile from './screens/Profile/MyProfile';
 import Settings from './screens/Profile/Settings';
 import MyVehicles from './screens/Responsable/MyVehicles';
@@ -39,8 +40,9 @@ export default function App() {
   };
 
   return (
-    <UserProvider>
-      <SafeAreaProvider>
+    <AuthProvider>
+      <UserProvider>
+        <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#CE0E2D' }}>
           <NavigationContainer linking={linking}>
             <Stack.Navigator
@@ -49,7 +51,7 @@ export default function App() {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
               }}
             >
-              {/* <Stack.Screen name="OnBoarding" component={OnBoarding} />
+              <Stack.Screen name="OnBoarding" component={OnBoarding} />
               <Stack.Screen name="OnBoardingTwo" component={OnBoardingTwo} />
               <Stack.Screen name="OnBoardingThree" component={OnBoardingThree} />
               <Stack.Screen name="LaunchScreen" component={LaunchScreen} />
@@ -57,7 +59,7 @@ export default function App() {
               <Stack.Screen name="SignIn" component={SignIn} />
               <Stack.Screen name="SignUp" component={SignUp} />
               <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
-              <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} /> */}
+              <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} />
               <Stack.Screen name="HomePageDonador" component={HomePageDonador} />
               <Stack.Screen name="HomePageAdmin" component={HomePageAdmin} />
               <Stack.Screen name="SetPassword" component={SetPassword} />
@@ -73,6 +75,7 @@ export default function App() {
           </NavigationContainer>
         </SafeAreaView>
       </SafeAreaProvider>
-    </UserProvider>
+      </UserProvider>
+    </AuthProvider>
   );
 }
