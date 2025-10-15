@@ -34,6 +34,24 @@ export async function getProjectById(id: string): Promise<Project | null> {
 }
 
 /**
+ * Get projects by Donador ID
+ */
+export async function getProjectByDonador(id: string): Promise<Project[]> {
+	const { data, error } = await supabase
+		.from("project")
+		.select("*")
+		.eq("creator_id", id)
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return [];
+	}
+
+	return data as Project[];
+}
+
+/**
  * Create new project
  */
 export async function createProject(project: Omit<Project, "id" | "created_at">): Promise<Project | null> {
