@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import Card from '../../components/common/Card';
+import ProyectPageAdmin from './ProyectPageAdmin';
 
 const HomePageAdmin = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -26,7 +27,7 @@ const HomePageAdmin = () => {
       sectionTitle={
         selectedView === 'paginaPrincipal' ? 'Página Principal' 
         : selectedView === 'proyectos' ? 'Proyectos'
-        : 'Registrar Donaciones'
+        : 'Usuarios registrados'
       }
     >
       {selectedView === 'paginaPrincipal' && (
@@ -59,6 +60,7 @@ const HomePageAdmin = () => {
 
       {selectedView === 'proyectos' && (
         <>
+        <ProyectPageAdmin />
         </>
       )}
 
