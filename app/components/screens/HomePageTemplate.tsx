@@ -66,7 +66,7 @@ const HomePageTemplate = ({
               styles.primaryButton,
               selectedButton === 'primary' ? styles.buttonSelected : {},
             ]}
-            textStyle={selectedButton === 'primary' ? { color: 'white' } : { color: 'black' }}
+            textStyle={selectedButton === 'primary' ? { color: 'white' } : { color: 'white' }}
           />
           <Button
             title={secondaryButtonText}
@@ -78,7 +78,7 @@ const HomePageTemplate = ({
               styles.secondaryButton,
               selectedButton === 'secondary' ? styles.buttonSelected : {},
             ]}
-            textStyle={selectedButton === 'secondary' ? { color: 'white' } : { color: 'black' }}
+            textStyle={selectedButton === 'secondary' ? { color: 'white' } : { color: 'white' }}
           />
         </View>
       </View>

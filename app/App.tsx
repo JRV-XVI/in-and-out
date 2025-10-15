@@ -22,6 +22,8 @@ import { UserProvider } from './context/UserContext';
 import MyProfile from './screens/Profile/MyProfile';
 import Settings from './screens/Profile/Settings';
 import MyVehicles from './screens/Responsable/MyVehicles';
+import Contact from './screens/Profile/Contact';
+import About from './screens/Profile/About';
 
 const Stack = createStackNavigator();
 
@@ -64,6 +66,8 @@ export default function App() {
               <Stack.Screen name="MyProfile" component={MyProfile} />
               <Stack.Screen name="Settings" component={Settings} />
               <Stack.Screen name="MyVehicles" component={MyVehicles} />
+              <Stack.Screen name="Contact" component={Contact} />
+              <Stack.Screen name="About" component={About} />
             </Stack.Navigator>
             <StatusBar style="auto" />
           </NavigationContainer>
