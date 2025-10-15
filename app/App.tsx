@@ -46,7 +46,7 @@ export default function App() {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
               }}
             >
-              <Stack.Screen name="OnBoarding" component={OnBoarding} />
+              {/* <Stack.Screen name="OnBoarding" component={OnBoarding} />
               <Stack.Screen name="OnBoardingTwo" component={OnBoardingTwo} />
               <Stack.Screen name="OnBoardingThree" component={OnBoardingThree} />
               <Stack.Screen name="LaunchScreen" component={LaunchScreen} />
@@ -54,7 +54,7 @@ export default function App() {
               <Stack.Screen name="SignIn" component={SignIn} />
               <Stack.Screen name="SignUp" component={SignUp} />
               <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
-              <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} />
+              <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} /> */}
               <Stack.Screen name="HomePageDonador" component={HomePageDonador} />
               <Stack.Screen name="HomePageAdmin" component={HomePageAdmin} />
               <Stack.Screen name="SetPassword" component={SetPassword} />
