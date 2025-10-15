@@ -19,6 +19,7 @@ import SetPassword from './screens/Password/SetPassword';
 import SetPasswordTwo from './screens/Password/SetPasswordTwo';
 import SetPasswordThree from './screens/Password/SetPasswordThree';
 import { UserProvider } from './context/UserContext';
+import { AuthProvider } from './context/AuthContext';
 import MyProfile from './screens/Profile/MyProfile';
 import Settings from './screens/Profile/Settings';
 import MyVehicles from './screens/Responsable/MyVehicles';
@@ -39,8 +40,9 @@ export default function App() {
   };
 
   return (
-    <UserProvider>
-      <SafeAreaProvider>
+    <AuthProvider>
+      <UserProvider>
+        <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#CE0E2D' }}>
           <NavigationContainer linking={linking}>
             <Stack.Navigator
@@ -73,6 +75,7 @@ export default function App() {
           </NavigationContainer>
         </SafeAreaView>
       </SafeAreaProvider>
-    </UserProvider>
+      </UserProvider>
+    </AuthProvider>
   );
 }
