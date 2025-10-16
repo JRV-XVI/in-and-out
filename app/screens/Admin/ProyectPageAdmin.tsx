@@ -1,51 +1,40 @@
-import React, { useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, FlatList, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, View, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ActivityIndicator } from 'react-native';
 import ProjectCardAdmin from '../../components/specialCards/ProjectCardAdmin';
+import { Project } from '../../types/project';
+import { getAllProjects } from '../../services/projects';
 
-const sample = [
-	{
-		id: 1,
-		title: 'Alimento Seco',
-		subtitle: 'Carga mediana',
-		date: '03/09/25',
-		// normalized status for ProjectCard
-		status: 'Confirmación' as const,
-		// state used for tab filtering
-		state: 'activo' as const,
-		meta: ['Direccion: Calle 5 de Febrero, 200', 'Productos: Manzanas, Mango, Pepino'],
-		vehiculo: ['Vehículo: {matricula}, {marca}, {modelo}, {color}'],
-	},
-	{
-		id: 2,
-		title: 'Alimento Seco',
-		subtitle: 'Carga mediana',
-		date: '03/07/25',
-		status: 'Recolección' as const,
-		state: 'pendiente' as const,
-		meta: ['Direccion: ...', 'Productos: ...'],
-		vehiculo: ['Vehículo: {matricula}, {marca}, {modelo}, {color}'],
-	},
-	{
-		id: 3,
-		title: 'Alimento Congelado',
-		subtitle: 'Carga con congelador',
-		date: '03/05/25',
-		status: 'Recolectado' as const,
-		state: 'activo' as const,
-		meta: ['Direccion: ...', 'Productos: ...'],
-		vehiculo: ['Vehículo: {matricula}, {marca}, {modelo}, {color}'],
-	},
-];
 
 const ProyectPageAdmin = () => {
 	const [activeTab, setActiveTab] = useState<'activos' | 'pendientes'>('activos');
+	const [projects, setProjects] = useState<Project[]>([]);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [error, setError] = useState<string | null>(null);
 
-	// counts for tabs
-	const pendingCount = sample.filter((p) => p.state === 'pendiente').length;
-	const activeCount = sample.filter((p) => p.state === 'activo').length;
+	useEffect(() => {
+		let mounted = true;
+		async function load() {
+			setLoading(true);
+			try {
+				const data = await getAllProjects();
+				if (mounted) setProjects(data || []);
+			} catch (err) {
+				console.error('Error loading projects for admin:', err);
+				if (mounted) setError(String(err));
+			} finally {
+				if (mounted) setLoading(false);
+			}
+		}
+		load();
+		return () => { mounted = false; };
+	}, []);
+
+	// counts for tabs (treat projectState==1 as pendiente)
+	const pendingCount = projects.filter((p) => p.projectState === 1).length;
+	const activeCount = projects.filter((p) => (p.projectState || 0) !== 1).length;
 
 	// filtered data depending on selected tab
-	const dataToShow = sample.filter((p) => (activeTab === 'activos' ? p.state === 'activo' : p.state === 'pendiente'));
+	const dataToShow = projects.filter((p) => (activeTab === 'activos' ? (p.projectState || 0) !== 1 : p.projectState === 1));
 
 	return (
 		<SafeAreaView style={styles.safe}>
@@ -59,9 +48,9 @@ const ProyectPageAdmin = () => {
 			</View>
 
 			<FlatList
-				data={dataToShow}
-				keyExtractor={(i) => String(i.id)}
-				renderItem={({ item }) => <ProjectCardAdmin item={item} />}
+			data={dataToShow}
+			keyExtractor={(i) => String(i.id)}
+			renderItem={({ item }) => <ProjectCardAdmin project={item} />}
 				contentContainerStyle={{ paddingVertical: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
 			/>
