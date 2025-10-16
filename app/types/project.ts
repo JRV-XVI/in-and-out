@@ -5,7 +5,7 @@ export interface Project {
 	vehicle_id?: string | null;
 	title?: string | null;
 	projectState?: number | null;
-	token?: number | null;         // smallint
+	token?: string | null;         // tokens de 4 chars (letras/números/símbolos)
 	projectType?: number | null;
 	creator_id?: string | null;
 	weight?: number | null;
