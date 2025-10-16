@@ -34,6 +34,24 @@ export async function getProjectById(id: string): Promise<Project | null> {
 }
 
 /**
+ * Get projects by Responsable ID
+ */
+export async function getProjectByResponsable(id: string): Promise<Project[]> {
+    const { data, error } = await supabase
+        .from("project")
+        .select("*")
+        .eq("responsible_id", id)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Error obteniendo proyectos por responsable:", error);
+        return [];
+    }
+
+    return data as Project[];
+}
+
+/**
  * Get projects by Donador ID
  */
 export async function getProjectByDonador(id: string): Promise<Project[]> {
