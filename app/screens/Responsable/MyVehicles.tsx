@@ -73,6 +73,10 @@ const MyVehicles = ({ navigation }: any) => {
     setLoading(true);
     try {
       const data = await getVehiclesByUser(user.id); // <-- filtramos por usuario
+
+      console.log('🚗 [FETCH] Vehiculos obtenidos desde el servidor:', JSON.stringify(data, null, 2));
+      console.log('👤 [FETCH] Usuario actual:', user);
+
       setVehiculos(data);
     } catch (err) {
       console.error('Error obteniendo vehículos:', err);
@@ -220,6 +224,7 @@ const MyVehicles = ({ navigation }: any) => {
               <ActivityIndicator size="large" />
             </View>
           ) : (
+
             <FlatList
               data={filteredVehicles}
               keyExtractor={(item) => item.plate}
