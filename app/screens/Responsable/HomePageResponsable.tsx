@@ -14,24 +14,6 @@ import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects
 import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
 import { Project } from '../../types/project';
 
-// Las solicitudes en 'Abiertas' vendrán desde proyectosCompatiblesAdaptados
-
-// Estado para proyectos compatibles desde backend
-type UIProject = {
-  id: string;
-  fecha: string;
-  destinos?: string;
-  donadores: number;
-  vehiculo?: string;
-  carga: string;
-  status: number;
-  direccion: string;
-  donador?: string;
-  productos: string | string[];
-  tokens: string[];
-  tipo: 'Entrada' | 'Salida';
-};
-
 function parseFecha(fecha: string) {
   const [d, m, y] = fecha.split('/');
   return new Date(Number(`20${y}`), Number(m) - 1, Number(d));
@@ -45,21 +27,13 @@ function formatDate(date: Date | string): string {
   return `${day}/${month}/${year}`;
 }
 
-// Añadir: etiqueta de carga por peso con los rangos solicitados
 function getCargaLabelByWeight(weight?: number | null): string {
   if (typeof weight !== 'number') return 'Sin dato';
   if (weight > 10) return 'Carga pesada';
   if (weight > 5 && weight <= 10) return 'Carga mediana';
   if (weight > 0 && weight < 5) return 'Carga chica';
-  // Nota: weight === 5 no entra en ningún rango según tu regla actual
   return 'Sin dato';
 }
-
-const loadTypeLabels: Record<number, string> = {
-  1: 'Carga Normal',
-  2: 'Carga Delicada',
-  3: 'Carga con Congelador',
-};
 
 const tipoOpciones = ['Todas', 'Entrada', 'Salida'] as const;
 type TipoFiltro = typeof tipoOpciones[number];
@@ -68,12 +42,13 @@ const HomePageResponsable = () => {
   const navigation = useNavigation();
   const { authUser, userProfile } = useAuthContext();
   const { sendLocalNotification } = useNotifications();
-
   const [activeTab, setActiveTab] = useState<'home' | 'Entrada' | 'Salida' | 'Abiertas'>('home');
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
-  // Hooks de datos
+
+  const responsableId = String(userProfile?.id || authUser?.id || '');
+
   const {
     projects: proyectosAceptados,
     loading: loadingAceptados,
@@ -88,117 +63,26 @@ const HomePageResponsable = () => {
     refetch: refetchCompatibles,
   } = useCompatibleProjects(userProfile?.id);
 
-  const loading = selectedView === 'Abiertas' ? loadingCompatibles : loadingAceptados;
-  const error = selectedView === 'Abiertas' ? errorCompatibles : errorAceptados;
-  const refetch = () => {
-    refetchCompatibles();
-    refetchAceptados();
+  const tipoProyecto = selectedView !== 'Abiertas' ? selectedView : undefined;
+  const { projects, loading, error, refetch } = useProjects(responsableId, tipoProyecto);
+
+  const handleTabPress = (tab: string) => {
+    setActiveTab(tab as any);
+    if (tab === 'home') setSelectedView('Abiertas');
+    else setSelectedView(tab as 'Entrada' | 'Salida');
   };
 
-  // Adaptar Project -> UIProject respetando UI existente (Abiertas)
-  const proyectosCompatiblesAdaptados: UIProject[] = useMemo(() => {
-    const adapted = (proyectosCompatibles || []).map(p => {
-      const tipo: 'Entrada' | 'Salida' = p.projectType === 1 ? 'Entrada' : 'Salida';
-      const status = typeof p.projectState === 'number' ? p.projectState : 0;
-      const fecha = formatDate(p.created_at as any);
-      const carga = getCargaLabelByWeight(p.weight);
-
-      console.log('[UI] Compatibles map:', { id: p.id, weight: p.weight, carga });
-
-      return {
-        id: String(p.id),
-        fecha,
-        donadores: Number(p.token ?? 0),
-        carga,
-        status,
-        direccion: p.direction || '—',
-        productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
-        tokens: p.token != null ? [String(p.token)] : [],
-        tipo,
-      } as UIProject;
-    });
-    return adapted;
-  }, [proyectosCompatibles]);
-
-  const { data, error: updateError } = await supabase
+  const handleProjectStateChange = async (projectId: string, newState: number) => {
+    try {
+      const { error: updateError } = await supabase
         .from('project')
-        .update({
-          projectState: 2,
-          responsible_id: responsableId,
-        })
-        .eq('id', projectId)
-        .select()
-        .single();
-  // Aceptados -> Entrada
-  const proyectosAceptadosEntrada: UIProject[] = useMemo(() => {
-    const adapted = (proyectosAceptados || [])
-      .filter(p => p.projectType === 1)
-      .map(p => {
-        const fecha = formatDate(p.created_at as any);
-        const carga = getCargaLabelByWeight(p.weight);
+        .update({ projectState: newState })
+        .eq('id', projectId);
 
-        console.log('[UI] Aceptados Entrada map:', { id: p.id, weight: p.weight, carga });
+      if (updateError) {
+        throw updateError;
+      }
 
-      // Enviar notificación
-      await sendLocalNotification(
-        'Proyecto aceptado',
-        'Has aceptado un nuevo proyecto exitosamente'
-      );
-
-      Alert.alert(
-        'Éxito',
-        'Has aceptado el proyecto correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              refetch();
-              setSelectedView('Entrada');
-            }
-          }
-        ]
-      );
-        return {
-          id: String(p.id),
-          fecha,
-          donadores: Number(p.token ?? 0),
-          carga,
-          status: typeof p.projectState === 'number' ? p.projectState : 0,
-          direccion: p.direction || '—',
-          productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
-          tokens: p.token != null ? [String(p.token)] : [],
-          tipo: 'Entrada',
-        } as UIProject;
-      });
-    return adapted;
-  }, [proyectosAceptados]);
-
-  // Aceptados -> Salida
-  const proyectosAceptadosSalida: UIProject[] = useMemo(() => {
-    const adapted = (proyectosAceptados || [])
-      .filter(p => p.projectType === 2)
-      .map(p => {
-        const fecha = formatDate(p.created_at as any);
-        const carga = getCargaLabelByWeight(p.weight);
-
-        console.log('[UI] Aceptados Salida map:', { id: p.id, weight: p.weight, carga });
-
-        return {
-          id: String(p.id),
-          fecha,
-          donadores: Number(p.token ?? 0),
-          carga,
-          status: typeof p.projectState === 'number' ? p.projectState : 0,
-          direccion: p.direction || '—',
-          productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
-          tokens: p.token != null ? [String(p.token)] : [],
-          tipo: 'Salida',
-        } as UIProject;
-      });
-    return adapted;
-  }, [proyectosAceptados]);
-
-      // Enviar notificación
       const stateMessages: Record<number, string> = {
         2: 'El proyecto está en proceso de empaquetado',
         3: 'El transporte ha llegado',
@@ -220,40 +104,49 @@ const HomePageResponsable = () => {
       console.error('Error al actualizar estado:', err);
       Alert.alert('Error', 'No se pudo actualizar el estado del proyecto');
     }
-  const handleTabPress = (tab: string) => {
-    setActiveTab(tab as any);
-    if (tab === 'home') setSelectedView('Abiertas');
-    else setSelectedView(tab as 'Entrada' | 'Salida');
   };
 
-  // Filtrar y ordenar solicitudes (usando proyectos compatibles como solicitudes)
-  let solicitudesFiltradas = proyectosCompatiblesAdaptados.map(p => ({
-    id: p.id,
-    fecha: p.fecha,
-    tipo: p.tipo === 'Entrada' ? 'Entrada' : 'Salida',
-    carga: p.carga.includes('pesada') ? 'Pesada' : p.carga.includes('mediana') ? 'Mediana' : 'Chica',
-    voluntarios: String(p.donadores ?? 0),
-    proyecto: p.tipo,
-  }));
-  if (selectedView === 'Abiertas') {
-    if (tipoFiltro !== 'Todas') {
-      solicitudesFiltradas = solicitudesFiltradas.filter(
-        (item) => item.proyecto.toLowerCase() === tipoFiltro.toLowerCase()
-      );
-    }
-    solicitudesFiltradas = [...solicitudesFiltradas].sort((a, b) => {
-      const dateA = parseFecha(a.fecha);
-      const dateB = parseFecha(b.fecha);
-      if (filterOrder === 'Ascendente') return dateA.getTime() - dateB.getTime();
-      if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
-      return 0;
-    });
-  }
+  // Adaptar proyectos compatibles para SolicitudCard
+  const solicitudesFiltradas = useMemo(() => {
+    let adapted = (proyectosCompatibles || []).map(p => {
+      const tipo: 'Entrada' | 'Salida' = p.projectType === 1 ? 'Entrada' : 'Salida';
+      const fecha = formatDate(p.created_at as any);
+      const carga = getCargaLabelByWeight(p.weight);
+      const cargaSimple = carga.includes('pesada') ? 'Pesada' : carga.includes('mediana') ? 'Mediana' : 'Chica';
 
-  // Filtrar y ordenar proyectos (a partir de proyectosAdaptados)
-  let proyectosFiltrados = proyectosCompatiblesAdaptados;
-  if (selectedView !== 'Abiertas') {
-    proyectosFiltrados = [...projects]
+      return {
+        id: String(p.id),
+        fecha,
+        tipo,
+        carga: cargaSimple,
+        voluntarios: String(p.token ?? 0),
+        proyecto: tipo,
+      };
+    });
+
+    if (selectedView === 'Abiertas') {
+      if (tipoFiltro !== 'Todas') {
+        adapted = adapted.filter(
+          (item) => item.proyecto.toLowerCase() === tipoFiltro.toLowerCase()
+        );
+      }
+      adapted = [...adapted].sort((a, b) => {
+        const dateA = parseFecha(a.fecha);
+        const dateB = parseFecha(b.fecha);
+        if (filterOrder === 'Ascendente') return dateA.getTime() - dateB.getTime();
+        if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
+        return 0;
+      });
+    }
+
+    return adapted;
+  }, [proyectosCompatibles, selectedView, tipoFiltro, filterOrder]);
+
+  // Filtrar proyectos aceptados para ProjectCard
+  const proyectosFiltrados = useMemo(() => {
+    if (selectedView === 'Abiertas') return [];
+    
+    return [...projects]
       .filter(p => p.projectState !== 6)
       .sort((a, b) => {
         const dateA = new Date(a.expirationDate || a.created_at);
@@ -262,7 +155,20 @@ const HomePageResponsable = () => {
         if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
         return 0;
       });
-  }
+  }, [projects, selectedView, filterOrder]);
+
+  // Consolidar función de refresco
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        refetchCompatibles(),
+        refetchAceptados(),
+        refetch()
+      ]);
+    } catch (error) {
+      console.error('Error al refrescar:', error);
+    }
+  };
 
   if (!responsableId) {
     return (
@@ -270,7 +176,6 @@ const HomePageResponsable = () => {
         <Text style={styles.errorText}>No se encontró usuario autenticado</Text>
       </View>
     );
-
   }
 
   return (
@@ -287,8 +192,7 @@ const HomePageResponsable = () => {
           ? 'Solicitudes Abiertas'
           : `Proyectos de ${selectedView}`
       }
-      onRefreshSection={refetch} // <-- Aquí pasas la función de refresco
-
+      onRefreshSection={handleRefresh}
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
@@ -327,8 +231,12 @@ const HomePageResponsable = () => {
                 if (!userProfile?.id) return;
                 const updated = await acceptProjectWithFirstCompatibleVehicle(item.id, userProfile.id);
                 if (updated) {
-                  // Refrescar listas tras aceptar
+                  await sendLocalNotification(
+                    'Proyecto aceptado',
+                    'Has aceptado un nuevo proyecto exitosamente'
+                  );
                   refetch();
+                  setSelectedView(item.proyecto === 'Entrada' ? 'Entrada' : 'Salida');
                 }
               }}
               icon={
