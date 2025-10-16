@@ -6,13 +6,13 @@ import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import SolicitudCard from '../../components/specialCards/SolicitudCard';
 import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
-import RefreshButton from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
 import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects';
 import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
-import { Project } from '../../types/project';
+import { sendNotificationToUser } from '../../services/notifications';
+import RefreshButton from '../../components/common/RefreshButton';
 
 function parseFecha(fecha: string) {
   const [d, m, y] = fecha.split('/');
@@ -46,6 +46,7 @@ const HomePageResponsable = () => {
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
+  // ELIMINAR: const [isRefreshing, setIsRefreshing] = useState(false);
 
   const responsableId = String(userProfile?.id || authUser?.id || '');
 
@@ -74,6 +75,18 @@ const HomePageResponsable = () => {
 
   const handleProjectStateChange = async (projectId: string, newState: number) => {
     try {
+      // Obtener también el nombre del proyecto
+      const { data: projectData, error: fetchError } = await supabase
+        .from('project')
+        .select('creator_id, title') // Asegúrate que el campo sea 'name', si no, usa el correcto
+        .eq('id', projectId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Actualizar el estado del proyecto
       const { error: updateError } = await supabase
         .from('project')
         .update({ projectState: newState })
@@ -83,18 +96,39 @@ const HomePageResponsable = () => {
         throw updateError;
       }
 
+      const projectName = projectData?.title ? ` (${projectData.title})` : '';
+
       const stateMessages: Record<number, string> = {
-        2: 'El proyecto está en proceso de empaquetado',
-        3: 'El transporte ha llegado',
-        4: 'El proyecto está en camino',
-        5: 'El proyecto ha sido entregado',
-        6: 'El proyecto ha sido completado'
+        2: `El proyecto${projectName} está en proceso de empaquetado`,
+        3: `El transporte ha llegado para el proyecto${projectName}`,
+        4: `El proyecto${projectName} está en camino`,
+        5: `El proyecto${projectName} ha sido entregado`,
+        6: `El proyecto${projectName} ha sido completado`
       };
-      
-      if (stateMessages[newState]) {
-        await sendLocalNotification(
-          'Estado actualizado',
+
+      const localMessages: Record<number, string> = {
+        2: `Solicita el token al donador para empaquetar el proyecto${projectName}.`,
+        3: `Iniciaste el viaje del proyecto${projectName}.`,
+        4: `El proyecto${projectName} está en camino.`,
+        5: `Finalizaste el proyecto${projectName}, solicita el token al donador.`,
+        6: `Terminaste el proyecto${projectName} exitosamente.`
+      };
+
+      // Notificación al donador (creator_id)
+      if (stateMessages[newState] && projectData?.creator_id) {
+        const creatorId = Number(projectData.creator_id);
+        await sendNotificationToUser(
+          creatorId,
+          'Estado del proyecto actualizado',
           stateMessages[newState]
+        );
+      }
+
+      // Notificación local al responsable
+      if (localMessages[newState]) {
+        await sendLocalNotification(
+          'Actualización de proyecto',
+          localMessages[newState]
         );
       }
 
@@ -159,6 +193,7 @@ const HomePageResponsable = () => {
 
   // Consolidar función de refresco
   const handleRefresh = async () => {
+    // ELIMINAR: setIsRefreshing(true);
     try {
       await Promise.all([
         refetchCompatibles(),
@@ -168,6 +203,7 @@ const HomePageResponsable = () => {
     } catch (error) {
       console.error('Error al refrescar:', error);
     }
+    // ELIMINAR: finally { setIsRefreshing(false); }
   };
 
   if (!responsableId) {
@@ -192,7 +228,13 @@ const HomePageResponsable = () => {
           ? 'Solicitudes Abiertas'
           : `Proyectos de ${selectedView}`
       }
-      onRefreshSection={handleRefresh}
+      sectionTitleAction={
+        <RefreshButton
+          onRefresh={handleRefresh}
+          color="#CE0E2D"
+          size={24}
+        />
+      }
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
@@ -229,12 +271,34 @@ const HomePageResponsable = () => {
               proyecto={item.proyecto}
               onAccept={async () => {
                 if (!userProfile?.id) return;
+
+                // Obtener el creator_id y nombre del proyecto antes de aceptarlo
+                const { data: projectData } = await supabase
+                  .from('project')
+                  .select('creator_id, title')
+                  .eq('id', item.id)
+                  .single();
+
+                const projectName = projectData?.title ? ` (${projectData.title})` : '';
+
                 const updated = await acceptProjectWithFirstCompatibleVehicle(item.id, userProfile.id);
                 if (updated) {
+                  // Notificación al donador
+                  if (projectData?.creator_id) {
+                    const creatorId = Number(projectData.creator_id);
+                    await sendNotificationToUser(
+                      creatorId,
+                      'Proyecto aceptado',
+                      `Un responsable ha aceptado tu proyecto${projectName} y comenzará el proceso`
+                    );
+                  }
+
+                  // Notificación para el responsable
                   await sendLocalNotification(
                     'Proyecto aceptado',
-                    'Has aceptado un nuevo proyecto exitosamente'
+                    `Has aceptado el proyecto${projectName} exitosamente`
                   );
+
                   refetch();
                   setSelectedView(item.proyecto === 'Entrada' ? 'Entrada' : 'Salida');
                 }
