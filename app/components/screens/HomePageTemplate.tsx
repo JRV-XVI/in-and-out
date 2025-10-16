@@ -5,7 +5,6 @@ import Button from '../../components/common/Button';
 import { useUser } from '../../context/UserContext';
 import History from '../../components/screens/History';
 import Search from '../../components/screens/Search';
-import RefreshButton from '../../components/common/RefreshButton';
 
 interface TemplateProps {
   activeTab: string;
@@ -18,7 +17,6 @@ interface TemplateProps {
   secondaryButtonText?: string;
   sectionTitle?: string;
   sectionTitleAction?: React.ReactNode;
-  onRefreshSection?: () => Promise<void> | void;
 }
 
 const HomePageTemplate = ({
@@ -32,7 +30,6 @@ const HomePageTemplate = ({
   secondaryButtonText = "Texto cambio",
   sectionTitle = "Texto cambio",
   sectionTitleAction,
-  onRefreshSection,
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -111,13 +108,7 @@ const HomePageTemplate = ({
           <>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-              {onRefreshSection && (
-                <RefreshButton 
-                  onRefresh={onRefreshSection} 
-                  color="#CE0E2D" 
-                  size={24}
-                />
-              )}
+              {sectionTitleAction}
             </View>
             {children}
           </>
