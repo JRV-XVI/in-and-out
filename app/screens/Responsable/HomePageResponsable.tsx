@@ -1,13 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { FlatList, TouchableOpacity, StyleSheet, View, Text } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { FlatList, TouchableOpacity, StyleSheet, View, Text, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import SolicitudCard from '../../components/specialCards/SolicitudCard';
 import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
+import RefreshButton from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
-import { acceptProjectWithFirstCompatibleVehicle, getAcceptedProjectsForResponsible, getCompatibleValidatedProjectsForUser } from '../../services/projects';
+import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects';
+import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
 import { Project } from '../../types/project';
 
 // Las solicitudes en 'Abiertas' vendrán desde proyectosCompatiblesAdaptados
@@ -41,6 +43,16 @@ function formatDate(date: Date | string): string {
   return `${day}/${month}/${year}`;
 }
 
+// Añadir: etiqueta de carga por peso con los rangos solicitados
+function getCargaLabelByWeight(weight?: number | null): string {
+  if (typeof weight !== 'number') return 'Sin dato';
+  if (weight > 10) return 'Carga pesada';
+  if (weight > 5 && weight <= 10) return 'Carga mediana';
+  if (weight > 0 && weight < 5) return 'Carga chica';
+  // Nota: weight === 5 no entra en ningún rango según tu regla actual
+  return 'Sin dato';
+}
+
 const loadTypeLabels: Record<number, string> = {
   1: 'Carga Normal',
   2: 'Carga Delicada',
@@ -57,114 +69,100 @@ const HomePageResponsable = () => {
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
-  const [loading, setLoading] = useState(false);
-  const [proyectosCompatibles, setProyectosCompatibles] = useState<Project[]>([]);
-  const [proyectosAceptados, setProyectosAceptados] = useState<Project[]>([]);
+  // Hooks de datos
+  const {
+    projects: proyectosAceptados,
+    loading: loadingAceptados,
+    error: errorAceptados,
+    refetch: refetchAceptados,
+  } = useProjects(userProfile?.id ?? '');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userProfile?.id) return;
-      setLoading(true);
-      try {
-        const [compatibles, aceptados] = await Promise.all([
-          getCompatibleValidatedProjectsForUser(userProfile.id),
-          getAcceptedProjectsForResponsible(userProfile.id),
-        ]);
-        console.log('📦 [Responsable] Compatibles (raw):', JSON.stringify(compatibles));
-        console.log('📦 [Responsable] Aceptados (raw):', JSON.stringify(aceptados));
-        setProyectosCompatibles(compatibles);
-        setProyectosAceptados(aceptados);
-      } catch (e) {
-        console.error('Error cargando proyectos compatibles', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [userProfile?.id]);
+  const {
+    projects: proyectosCompatibles,
+    loading: loadingCompatibles,
+    error: errorCompatibles,
+    refetch: refetchCompatibles,
+  } = useCompatibleProjects(userProfile?.id);
 
-  // Adaptar Project -> UIProject respetando UI existente
+  const loading = selectedView === 'Abiertas' ? loadingCompatibles : loadingAceptados;
+  const error = selectedView === 'Abiertas' ? errorCompatibles : errorAceptados;
+  const refetch = () => {
+    refetchCompatibles();
+    refetchAceptados();
+  };
+
+  // Adaptar Project -> UIProject respetando UI existente (Abiertas)
   const proyectosCompatiblesAdaptados: UIProject[] = useMemo(() => {
     const adapted = (proyectosCompatibles || []).map(p => {
-      // projectType: 1 entrada, 2 salida? Ajusta si tu enumeración es diferente
       const tipo: 'Entrada' | 'Salida' = p.projectType === 1 ? 'Entrada' : 'Salida';
-
-      // status mapping: projectState -> UI status index
       const status = typeof p.projectState === 'number' ? p.projectState : 0;
+      const fecha = formatDate(p.created_at as any);
+      const carga = getCargaLabelByWeight(p.weight);
 
-      // fecha: usar created_at (ISO) -> dd/mm/yy simple
-      const created = p.created_at ? new Date(p.created_at) : new Date();
-      const dd = String(created.getDate()).padStart(2, '0');
-      const mm = String(created.getMonth() + 1).padStart(2, '0');
-      const yy = String(created.getFullYear()).slice(-2);
-      const fecha = `${dd}/${mm}/${yy}`;
+      console.log('[UI] Compatibles map:', { id: p.id, weight: p.weight, carga });
 
-      const ui = {
+      return {
         id: String(p.id),
         fecha,
-        donadores: p.token ?? 0,
-        carga: p.loadType === 3 ? 'Carga pesada' : p.loadType === 2 ? 'Carga mediana' : 'Carga chica',
+        donadores: Number(p.token ?? 0),
+        carga,
         status,
         direccion: p.direction || '—',
         productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
         tokens: p.token != null ? [String(p.token)] : [],
         tipo,
       } as UIProject;
-      return ui;
     });
-    console.log('🧩 [Responsable] Compatibles (UI):', JSON.stringify(adapted));
     return adapted;
   }, [proyectosCompatibles]);
 
+  // Aceptados -> Entrada
   const proyectosAceptadosEntrada: UIProject[] = useMemo(() => {
     const adapted = (proyectosAceptados || [])
       .filter(p => p.projectType === 1)
       .map(p => {
-        const created = p.created_at ? new Date(p.created_at) : new Date();
-        const dd = String(created.getDate()).padStart(2, '0');
-        const mm = String(created.getMonth() + 1).padStart(2, '0');
-        const yy = String(created.getFullYear()).slice(-2);
-        const fecha = `${dd}/${mm}/${yy}`;
-        const ui = {
+        const fecha = formatDate(p.created_at as any);
+        const carga = getCargaLabelByWeight(p.weight);
+
+        console.log('[UI] Aceptados Entrada map:', { id: p.id, weight: p.weight, carga });
+
+        return {
           id: String(p.id),
           fecha,
-          donadores: p.token ?? 0,
-          carga: p.loadType === 3 ? 'Carga pesada' : p.loadType === 2 ? 'Carga mediana' : 'Carga chica',
+          donadores: Number(p.token ?? 0),
+          carga,
           status: typeof p.projectState === 'number' ? p.projectState : 0,
           direccion: p.direction || '—',
           productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
           tokens: p.token != null ? [String(p.token)] : [],
           tipo: 'Entrada',
         } as UIProject;
-        return ui;
       });
-    console.log('🧩 [Responsable] Aceptados Entrada (UI):', JSON.stringify(adapted));
     return adapted;
   }, [proyectosAceptados]);
 
+  // Aceptados -> Salida
   const proyectosAceptadosSalida: UIProject[] = useMemo(() => {
     const adapted = (proyectosAceptados || [])
       .filter(p => p.projectType === 2)
       .map(p => {
-        const created = p.created_at ? new Date(p.created_at) : new Date();
-        const dd = String(created.getDate()).padStart(2, '0');
-        const mm = String(created.getMonth() + 1).padStart(2, '0');
-        const yy = String(created.getFullYear()).slice(-2);
-        const fecha = `${dd}/${mm}/${yy}`;
-        const ui = {
+        const fecha = formatDate(p.created_at as any);
+        const carga = getCargaLabelByWeight(p.weight);
+
+        console.log('[UI] Aceptados Salida map:', { id: p.id, weight: p.weight, carga });
+
+        return {
           id: String(p.id),
           fecha,
-          donadores: p.token ?? 0,
-          carga: p.loadType === 3 ? 'Carga pesada' : p.loadType === 2 ? 'Carga mediana' : 'Carga chica',
+          donadores: Number(p.token ?? 0),
+          carga,
           status: typeof p.projectState === 'number' ? p.projectState : 0,
           direccion: p.direction || '—',
           productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
           tokens: p.token != null ? [String(p.token)] : [],
           tipo: 'Salida',
         } as UIProject;
-        return ui;
       });
-    console.log('🧩 [Responsable] Aceptados Salida (UI):', JSON.stringify(adapted));
     return adapted;
   }, [proyectosAceptados]);
 
@@ -225,6 +223,11 @@ const HomePageResponsable = () => {
           ? 'Solicitudes Abiertas'
           : `Proyectos de ${selectedView}`
       }
+      sectionTitleAction={
+        selectedView === 'Abiertas' ? (
+          <RefreshButton onRefresh={refetch} color="#CE0E2D" size={24} />
+        ) : undefined
+      }
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
@@ -281,9 +284,8 @@ const HomePageResponsable = () => {
                 if (!userProfile?.id) return;
                 const updated = await acceptProjectWithFirstCompatibleVehicle(item.id, userProfile.id);
                 if (updated) {
-                  // Refrescar listas: quitar de compatibles y agregar a aceptados
-                  setProyectosCompatibles(prev => prev.filter(p => String(p.id) !== item.id));
-                  setProyectosAceptados(prev => [updated, ...prev]);
+                  // Refrescar listas tras aceptar
+                  refetch();
                 }
               }}
               icon={
@@ -326,29 +328,13 @@ const HomePageResponsable = () => {
               donorName={item.donador || ''}
               products={typeof item.productos === 'string' ? item.productos.split(',').map(p => p.trim()) : item.productos}
               status={
-                item.projectState === 1 ? 'confirmacion' :
-                item.projectState === 2 ? 'confirmacion' :
-                item.projectState === 3 ? 'en_recoleccion' :
-                item.projectState === 4 ? 'recolectado' :
+                item.status === 2 ? 'confirmacion' :
+                item.status === 3 ? 'en_recoleccion' :
+                item.status === 4 ? 'recolectado' :
                 'finalizado'
               }
-              tokens={item.token ? [Number(item.token)] : []}
-              onStart={() => handleProjectStateChange(item.id, 3)}
-              onCollected={() => handleProjectStateChange(item.id, 4)}
-              onFinalize={() => handleProjectStateChange(item.id, 5)}
-              onComplete={() => {
-                Alert.alert(
-                  'Confirmar',
-                  '¿Deseas terminar este proyecto?',
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                      text: 'Confirmar',
-                      onPress: () => handleProjectStateChange(item.id, 6)
-                    }
-                  ]
-                );
-              }}
+              tokens={item.tokens.map(Number)}
+              onStart={() => console.log(`Iniciar proyecto ${item.id}`)}
             />
           )}
           contentContainerStyle={{ paddingBottom: 120 }}
