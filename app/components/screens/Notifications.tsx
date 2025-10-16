@@ -1,23 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useUser } from '../../context/UserContext';
-import supabase from '../../lib/supabase';
-import { useNotifications } from '../../hooks/useNotification';
-
-interface NotificationItem {
-  id: string;
-  body: string;
-  created_at: string;
-  user_id: string;
-}
+import { useNotifications } from '../../context/NotificationContext';
+import Reload from '../../components/common/Reload';
 
 const Notifications = () => {
-  const { user } = useUser();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { notifications, unreadCount, loading, error, markAsRead, removeNotification, clearAll, refreshNotifications } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
-  const { sendLocalNotification } = useNotifications();
+
+  // Función para manejar el pull to refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshNotifications();
+    setRefreshing(false);
+  };
 
   // Función para obtener icono según el contenido
   const getIcon = (text: string) => {
@@ -32,80 +28,20 @@ const Notifications = () => {
     }
   };
 
-  // Cargar notificaciones desde Supabase
-  const fetchNotifications = async () => {
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      console.log('Notificaciones cargadas:', data?.length || 0);
-      setNotifications(data || []);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  // Manejar marcar como leída con feedback inmediato
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead(id);
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchNotifications();
+  // Manejar eliminar con feedback inmediato
+  const handleRemove = async (id: string) => {
+    await removeNotification(id);
   };
 
-  useEffect(() => {
-    fetchNotifications();
-
-    // Suscribirse a cambios en tiempo real
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user?.auth_user_id}`,
-        },
-        (payload: any) => {
-          console.log('Nueva notificación recibida:', payload.new);
-          const newNotification = payload.new as NotificationItem;
-          
-          // Agregar a la lista
-          setNotifications((prev) => [newNotification, ...prev]);
-          
-          // Mostrar notificación local
-          sendLocalNotification('Nueva notificación', newNotification.body);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Estado de suscripción:', status);
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.auth_user_id]);
-
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
-    );
-  }
+  // Manejar limpiar todas
+  const handleClearAll = async () => {
+    await clearAll();
+  };
 
   return (
     <View style={styles.container}>
@@ -116,16 +52,34 @@ const Notifications = () => {
       <ScrollView 
         style={styles.notificationsList}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#fff"
+            titleColor="#fff"
+            colors={['#fff']}
+            progressBackgroundColor="#CE0E2D"
+          />
         }
       >
-        {notifications.length === 0 ? (
-          <Text style={styles.emptyText}>No tienes notificaciones</Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={styles.loadingText}>Cargando notificaciones...</Text>
+          </View>
+        ) : error ? (
+          <Reload error={error} onReload={onRefresh} />
+        ) : notifications.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={48} color="#fff" />
+            <Text style={styles.emptyText}>No tienes notificaciones</Text>
+          </View>
         ) : (
           notifications.map((notif) => (
             <View key={notif.id} style={styles.notificationItem}>
               <View style={styles.iconContainer}>{getIcon(notif.body)}</View>
               <View style={styles.textContainer}>
+                <Text style={styles.notificationText}>{notif.title ? notif.title : 'Notificación'}</Text>
                 <Text style={styles.notificationText}>{notif.body}</Text>
                 <Text style={styles.dateText}>
                   {new Date(notif.created_at).toLocaleDateString('es-ES', {
@@ -134,10 +88,32 @@ const Notifications = () => {
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
+                  {notif.read ? '' : ' • Nuevo'}
                 </Text>
+                <View style={{ flexDirection: 'row', marginTop: 4 }}>
+                  {!notif.read && (
+                    <TouchableOpacity onPress={() => handleMarkAsRead(notif.id)}>
+                      <Text style={{ color: '#fff', marginRight: 12, textDecorationLine: 'underline' }}>
+                        Marcar como leída
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => handleRemove(notif.id)}>
+                    <Text style={{ color: '#fff', textDecorationLine: 'underline' }}>
+                      Eliminar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))
+        )}
+        {notifications.length > 0 && (
+          <TouchableOpacity onPress={handleClearAll}>
+            <Text style={{ color: '#fff', textAlign: 'center', marginTop: 16, marginBottom: 32, textDecorationLine: 'underline' }}>
+              Limpiar todas
+            </Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </View>
@@ -150,15 +126,11 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#CE0E2D',
     paddingTop: 48,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     justifyContent: 'flex-start',
     borderTopLeftRadius: 32,
     borderBottomLeftRadius: 32,
     alignSelf: 'flex-end',
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -204,11 +176,53 @@ const styles = StyleSheet.create({
     color: '#fffc',
     fontSize: 12,
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
   emptyText: {
     color: '#fff',
     fontSize: 16,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 12,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#CE0E2D',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

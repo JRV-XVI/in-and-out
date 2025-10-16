@@ -5,6 +5,7 @@ import Button from '../../components/common/Button'; // Ajusta la ruta si es nec
 import { useUser } from '../../context/UserContext';
 import History from '../../components/screens/History'; // Importa History
 import Search from '../../components/screens/Search';
+import RefreshButton from '../../components/common/RefreshButton'; // Importa el botón
 
 interface TemplateProps {
   activeTab: string;
@@ -16,7 +17,8 @@ interface TemplateProps {
   primaryButtonText?: string;
   secondaryButtonText?: string;
   sectionTitle?: string;
-  sectionTitleAction?: React.ReactNode; // Nuevo: elemento opcional junto al título
+  sectionTitleAction?: React.ReactNode;
+  onRefreshSection?: () => Promise<void> | void; // NUEVO: función de refresco para la sección
 }
 
 const HomePageTemplate = ({
@@ -29,7 +31,8 @@ const HomePageTemplate = ({
   primaryButtonText = "Texto cambio",
   secondaryButtonText = "Texto cambio",
   sectionTitle = "Texto cambio",
-  sectionTitleAction // Nuevo: elemento opcional junto al título
+  sectionTitleAction,
+  onRefreshSection, // NUEVO
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
   const [showHistory, setShowHistory] = useState(false); // Estado para mostrar History
@@ -111,6 +114,9 @@ const HomePageTemplate = ({
           <>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+              {onRefreshSection && (
+                <RefreshButton onRefresh={onRefreshSection} style={styles.refreshButtonSection} />
+              )}
               {sectionTitleAction && (
                 <View style={styles.sectionTitleAction}>
                   {sectionTitleAction}
@@ -209,7 +215,6 @@ const styles = StyleSheet.create({
   },
   sectionTitleContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
@@ -218,7 +223,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 28,
     flex: 1,
-    textAlign: 'center', 
+    textAlign: 'center',
+  },
+  refreshButtonSection: {
+    marginLeft: 0,
+    marginBottom: 10,
+    alignSelf: 'center',
   },
   sectionTitleAction: {
     position: 'absolute',

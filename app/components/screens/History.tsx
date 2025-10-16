@@ -6,37 +6,15 @@ import Filter from '../common/Filter';
 import Alert from '../common/Alert';
 import { supabase } from '../../lib/supabase';
 import { useAuthContext } from '../../context/AuthContext';
+import { Project } from '../../types/project';
 
-interface Project {
-  id: string;
-  projectType: number | string;
-  created_at: string;
-  expirationDate?: string;
-  loadType?: number;
-  direction?: string;
-  title?: string;
-  foodList?: any;
-  token?: string;
-  projectState: number;
-}
-
-const loadTypeLabels: Record<number, string> = {
-  1: 'Carga Normal',
-  2: 'Carga Delicada',
-  3: 'Carga con Congelador',
-};
-
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day}/${month}/${year}`;
-}
+const tipoOptions = ['Todas', 'Entrada', 'Salida'] as const;
+type TipoFiltro = typeof tipoOptions[number];
 
 const History = () => {
   const { authUser, userProfile } = useAuthContext();
-  const [filter, setFilter] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
+  const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -52,81 +30,61 @@ const History = () => {
     setAlertVisible(true);
   };
 
-  // Cargar proyectos completados
   useEffect(() => {
     loadCompletedProjects();
   }, [userId, userType]);
 
   const loadCompletedProjects = async () => {
     if (!userId) {
-      console.log('❌ No hay userId disponible');
       return;
     }
-
     try {
       setLoading(true);
-      console.log('🔍 Buscando proyectos completados para userId:', userId, 'userType:', userType);
-
       let query = supabase
         .from('project')
         .select('*')
         .eq('projectState', 6);
 
-      // Determinar qué campo usar según el tipo de usuario
-      // userType 1 = Admin, 2 = Donador, 3 = Responsable (ajustar según tu sistema)
       if (userType === 1) {
-        // Si es DONADOR, buscar por creator_id
-        console.log('👤 Usuario tipo DONADOR - Buscando por creator_id');
         query = query.eq('creator_id', userId);
       } else {
-        // Si es RESPONSABLE - 2 o ADMIN - 3, buscar por responsible_id
-        console.log('🚛 Usuario tipo RESPONSABLE - Buscando por responsible_id');
         query = query.eq('responsible_id', userId);
       }
 
       query = query.order('created_at', { ascending: false });
 
       const { data, error } = await query;
-
       if (error) throw error;
-
-      console.log('✅ Proyectos completados encontrados:', data?.length || 0);
       setProjects(data || []);
     } catch (err: any) {
-      console.error('❌ Error al cargar proyectos completados:', err);
       showAlert('Error al cargar el historial', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Extraer productos del foodList JSON
-  const getProducts = (foodList: any): string[] => {
-    if (!foodList || typeof foodList !== 'object') return [];
-    return Object.values(foodList)
-      .filter((item: any) => item && item.nombre)
-      .map((item: any) => item.nombre);
-  };
-
-  const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
-    if (typeof projectType === 'string') {
-      return projectType.toLowerCase() === 'entrada' ? 'entrada' : 'salida';
-    }
-    if (typeof projectType === 'number') {
-      return projectType === 1 ? 'entrada' : 'salida';
-    }
-    return 'salida';
-  };
-
-  // Filtrar y ordenar proyectos
   let proyectosFiltrados = [...projects];
-  if (filter === 'Ascendente') {
+  if (tipoFiltro !== 'Todas') {
+    proyectosFiltrados = proyectosFiltrados.filter((p) => {
+      if (typeof p.projectType === 'number') {
+        return (
+          (tipoFiltro === 'Entrada' && p.projectType === 1) ||
+          (tipoFiltro === 'Salida' && p.projectType === 2)
+        );
+      }
+      return false;
+    });
+  }
+
+
+  // Ordenar
+  if (filterOrder === 'Ascendente') {
     proyectosFiltrados.sort((a, b) => {
       const dateA = new Date(a.expirationDate || a.created_at);
       const dateB = new Date(b.expirationDate || b.created_at);
       return dateA.getTime() - dateB.getTime();
     });
-  } else if (filter === 'Descendente') {
+  } else if (filterOrder === 'Descendente') {
     proyectosFiltrados.sort((a, b) => {
       const dateA = new Date(a.expirationDate || a.created_at);
       const dateB = new Date(b.expirationDate || b.created_at);
@@ -145,7 +103,13 @@ const History = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Historial De Proyectos</Text>
-        <Filter label="Ordenar por:" active={filter} onChange={setFilter} />
+        <Filter
+          label="Ordenar por:"
+          activeOrder={filterOrder}
+          onOrderChange={setFilterOrder}
+          tipoActive={tipoFiltro}
+          onTipoChange={setTipoFiltro}
+        />
       </View>
 
       {/* Lista de proyectos */}
@@ -164,15 +128,11 @@ const History = () => {
           {proyectosFiltrados.map((item) => (
             <ProjectCard
               key={item.id}
-              type={getProjectType(item.projectType)}
-              date={formatDate(item.expirationDate || item.created_at)}
-              donors={1}
-              vehicleType={loadTypeLabels[item.loadType || 1] || 'Sin especificar'}
-              address={item.direction || 'Sin dirección'}
-              donorName={item.title || 'Sin nombre'}
-              products={getProducts(item.foodList)}
-              status="finalizado"
-              tokens={item.token ? [Number(item.token)] : []}
+              project={{
+                ...item,
+                token: item.token ? Number(item.token) : null,
+                projectType: typeof item.projectType === 'string' ? Number(item.projectType) : item.projectType,
+              }}
             />
           ))}
         </ScrollView>
