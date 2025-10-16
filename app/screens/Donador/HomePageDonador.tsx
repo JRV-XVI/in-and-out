@@ -11,6 +11,7 @@ import Alert from '../../components/common/Alert';
 import RefreshButton from '../../components/common/RefreshButton';
 import { createProject, getProjectByDonador, getCountsDonationsComplete, getCountsDonationsPause, getCountsDonationsCanceled } from '../../services/projects';
 import { useAuthContext } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { Project } from '../../types/project';
 
 interface Articulo {
@@ -21,6 +22,7 @@ interface Articulo {
 
 const HomePageDonador = () => {
   const { authUser, userProfile } = useAuthContext();
+  const { sendLocalNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState('home');
   const [selectedView, setSelectedView] = useState<'estadisticas' | 'misDonaciones' | 'registrarDonaciones'>('estadisticas');
 
@@ -299,6 +301,12 @@ const HomePageDonador = () => {
                 setAlertMessage('Donación registrada exitosamente');
                 setAlertType('success');
                 setShowAlert(true);
+
+                // Enviar notificación
+                await sendLocalNotification(
+                  'Donación registrada',
+                  `Tu donación "${titulo}" ha sido registrada exitosamente`
+                );
 
                 // Limpiar formulario
                 limpiarFormulario();

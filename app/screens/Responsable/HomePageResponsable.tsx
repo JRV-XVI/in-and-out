@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { FlatList, TouchableOpacity, StyleSheet, View, Text, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -6,17 +6,13 @@ import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import SolicitudCard from '../../components/specialCards/SolicitudCard';
 import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
-import { useProjects } from '../../hooks/useProjects';
+import RefreshButton from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
-
-// Simulación de solicitudes locales
-const solicitudesPrueba = [
-  { id: "1", fecha: "04/09/25", tipo: "Alimento seco", carga: "Chica", voluntarios: "1", proyecto: "Salida" },
-  { id: "2", fecha: "04/09/25", tipo: "Alimento seco", carga: "Pesada", voluntarios: "2", proyecto: "Entrada" },
-  { id: "3", fecha: "04/09/25", tipo: "Alimento congelado", carga: "Mediana", voluntarios: "3", proyecto: "Salida" },
-  { id: "4", fecha: "04/09/25", tipo: "Fruta", carga: "Pesada", voluntarios: "1", proyecto: "Salida" },
-];
+import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects';
+import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
+import { Project } from '../../types/project';
 
 function parseFecha(fecha: string) {
   const [d, m, y] = fecha.split('/');
@@ -31,11 +27,13 @@ function formatDate(date: Date | string): string {
   return `${day}/${month}/${year}`;
 }
 
-const loadTypeLabels: Record<number, string> = {
-  1: 'Carga Normal',
-  2: 'Carga Delicada',
-  3: 'Carga con Congelador',
-};
+function getCargaLabelByWeight(weight?: number | null): string {
+  if (typeof weight !== 'number') return 'Sin dato';
+  if (weight > 10) return 'Carga pesada';
+  if (weight > 5 && weight <= 10) return 'Carga mediana';
+  if (weight > 0 && weight < 5) return 'Carga chica';
+  return 'Sin dato';
+}
 
 const tipoOpciones = ['Todas', 'Entrada', 'Salida'] as const;
 type TipoFiltro = typeof tipoOpciones[number];
@@ -43,13 +41,27 @@ type TipoFiltro = typeof tipoOpciones[number];
 const HomePageResponsable = () => {
   const navigation = useNavigation();
   const { authUser, userProfile } = useAuthContext();
+  const { sendLocalNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<'home' | 'Entrada' | 'Salida' | 'Abiertas'>('home');
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
-  const [acceptingProject, setAcceptingProject] = useState<string | null>(null);
 
   const responsableId = String(userProfile?.id || authUser?.id || '');
+
+  const {
+    projects: proyectosAceptados,
+    loading: loadingAceptados,
+    error: errorAceptados,
+    refetch: refetchAceptados,
+  } = useProjects(userProfile?.id ?? '');
+
+  const {
+    projects: proyectosCompatibles,
+    loading: loadingCompatibles,
+    error: errorCompatibles,
+    refetch: refetchCompatibles,
+  } = useCompatibleProjects(userProfile?.id);
 
   const tipoProyecto = selectedView !== 'Abiertas' ? selectedView : undefined;
   const { projects, loading, error, refetch } = useProjects(responsableId, tipoProyecto);
@@ -60,59 +72,6 @@ const HomePageResponsable = () => {
     else setSelectedView(tab as 'Entrada' | 'Salida');
   };
 
-  // Función para aceptar una solicitud
-  const handleAcceptSolicitud = async (projectId: string) => {
-    if (!responsableId) {
-      Alert.alert('Error', 'No se encontró el ID del responsable');
-      return;
-    }
-
-    try {
-      setAcceptingProject(projectId);
-
-      // Actualizar el proyecto en Supabase
-      const { data, error: updateError } = await supabase
-        .from('project')
-        .update({
-          projectState: 2,
-          responsible_id: responsableId,
-        })
-        .eq('id', projectId)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      Alert.alert(
-        'Éxito',
-        'Has aceptado el proyecto correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Refrescar la lista de proyectos
-              refetch();
-              // Cambiar a la vista correspondiente
-              setSelectedView('Entrada'); // O determinar según el tipo de proyecto
-            }
-          }
-        ]
-      );
-
-    } catch (err: any) {
-      console.error('Error al aceptar solicitud:', err);
-      Alert.alert(
-        'Error',
-        err.message || 'No se pudo aceptar la solicitud. Intenta nuevamente.'
-      );
-    } finally {
-      setAcceptingProject(null);
-    }
-  };
-
-  // Función para manejar cambios de estado en ProjectCard
   const handleProjectStateChange = async (projectId: string, newState: number) => {
     try {
       const { error: updateError } = await supabase
@@ -124,6 +83,21 @@ const HomePageResponsable = () => {
         throw updateError;
       }
 
+      const stateMessages: Record<number, string> = {
+        2: 'El proyecto está en proceso de empaquetado',
+        3: 'El transporte ha llegado',
+        4: 'El proyecto está en camino',
+        5: 'El proyecto ha sido entregado',
+        6: 'El proyecto ha sido completado'
+      };
+      
+      if (stateMessages[newState]) {
+        await sendLocalNotification(
+          'Estado actualizado',
+          stateMessages[newState]
+        );
+      }
+
       Alert.alert('Éxito', 'Estado del proyecto actualizado');
       refetch();
     } catch (err: any) {
@@ -132,28 +106,48 @@ const HomePageResponsable = () => {
     }
   };
 
-  // Filtrar y ordenar solicitudes
-  let solicitudesFiltradas = solicitudesPrueba;
-  if (selectedView === 'Abiertas') {
-    if (tipoFiltro !== 'Todas') {
-      solicitudesFiltradas = solicitudesFiltradas.filter(
-        (item) => item.proyecto.toLowerCase() === tipoFiltro.toLowerCase()
-      );
-    }
-    solicitudesFiltradas = [...solicitudesFiltradas].sort((a, b) => {
-      const dateA = parseFecha(a.fecha);
-      const dateB = parseFecha(b.fecha);
-      if (filterOrder === 'Ascendente') return dateA.getTime() - dateB.getTime();
-      if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
-      return 0;
-    });
-  }
+  // Adaptar proyectos compatibles para SolicitudCard
+  const solicitudesFiltradas = useMemo(() => {
+    let adapted = (proyectosCompatibles || []).map(p => {
+      const tipo: 'Entrada' | 'Salida' = p.projectType === 1 ? 'Entrada' : 'Salida';
+      const fecha = formatDate(p.created_at as any);
+      const carga = getCargaLabelByWeight(p.weight);
+      const cargaSimple = carga.includes('pesada') ? 'Pesada' : carga.includes('mediana') ? 'Mediana' : 'Chica';
 
-  // Filtrar y ordenar proyectos desde Supabase
-  let proyectosFiltrados = projects;
-  if (selectedView !== 'Abiertas') {
-    proyectosFiltrados = [...projects]
-      .filter(p => p.projectState !== 6) // <-- Oculta los finalizados
+      return {
+        id: String(p.id),
+        fecha,
+        tipo,
+        carga: cargaSimple,
+        voluntarios: String(p.token ?? 0),
+        proyecto: tipo,
+      };
+    });
+
+    if (selectedView === 'Abiertas') {
+      if (tipoFiltro !== 'Todas') {
+        adapted = adapted.filter(
+          (item) => item.proyecto.toLowerCase() === tipoFiltro.toLowerCase()
+        );
+      }
+      adapted = [...adapted].sort((a, b) => {
+        const dateA = parseFecha(a.fecha);
+        const dateB = parseFecha(b.fecha);
+        if (filterOrder === 'Ascendente') return dateA.getTime() - dateB.getTime();
+        if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
+        return 0;
+      });
+    }
+
+    return adapted;
+  }, [proyectosCompatibles, selectedView, tipoFiltro, filterOrder]);
+
+  // Filtrar proyectos aceptados para ProjectCard
+  const proyectosFiltrados = useMemo(() => {
+    if (selectedView === 'Abiertas') return [];
+    
+    return [...projects]
+      .filter(p => p.projectState !== 6)
       .sort((a, b) => {
         const dateA = new Date(a.expirationDate || a.created_at);
         const dateB = new Date(b.expirationDate || b.created_at);
@@ -161,27 +155,21 @@ const HomePageResponsable = () => {
         if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
         return 0;
       });
-  }
+  }, [projects, selectedView, filterOrder]);
 
-  // Extraer productos del foodList JSON
-  const getProducts = (foodList: any): string[] => {
-    if (!foodList || typeof foodList !== 'object') return [];
-    return Object.values(foodList)
-      .filter((item: any) => item && item.nombre)
-      .map((item: any) => item.nombre);
+  // Consolidar función de refresco
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        refetchCompatibles(),
+        refetchAceptados(),
+        refetch()
+      ]);
+    } catch (error) {
+      console.error('Error al refrescar:', error);
+    }
   };
 
-  const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
-    if (typeof projectType === 'string') {
-      return projectType.toLowerCase() === 'entrada' ? 'entrada' : 'salida';
-    }
-    if (typeof projectType === 'number') {
-      return projectType === 1 ? 'entrada' : 'salida';
-    }
-    return 'salida';
-  };
-
-  // Si no hay usuario autenticado, mostrar mensaje
   if (!responsableId) {
     return (
       <View style={styles.errorContainer}>
@@ -204,34 +192,18 @@ const HomePageResponsable = () => {
           ? 'Solicitudes Abiertas'
           : `Proyectos de ${selectedView}`
       }
+      onRefreshSection={handleRefresh}
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
           <View style={styles.filterContainer}>
             <Filter
               label="Ordenar por:"
-              active={filterOrder}
-              onChange={setFilterOrder}
+              activeOrder={filterOrder}
+              onOrderChange={setFilterOrder}
+              tipoActive={tipoFiltro}
+              onTipoChange={setTipoFiltro}
             />
-            <View style={styles.tipoFiltroRow}>
-              {tipoOpciones.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[
-                    styles.tipoFiltroBtn,
-                    tipoFiltro === opt && styles.tipoFiltroBtnActive,
-                  ]}
-                  onPress={() => setTipoFiltro(opt)}
-                >
-                  <Text style={[
-                    styles.tipoFiltroText,
-                    tipoFiltro === opt && styles.tipoFiltroTextActive,
-                  ]}>
-                    {opt}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
           <View style={styles.vehicleButtonContainer}>
             <TouchableOpacity
@@ -244,7 +216,6 @@ const HomePageResponsable = () => {
         </View>
       )}
 
-      {/* Mostrar SolicitudCard en Abiertas, ProjectCard en proyectos */}
       {selectedView === 'Abiertas' ? (
         <FlatList
           data={solicitudesFiltradas}
@@ -256,8 +227,18 @@ const HomePageResponsable = () => {
               carga={item.carga}
               voluntarios={item.voluntarios}
               proyecto={item.proyecto}
-              onAccept={() => handleAcceptSolicitud(item.id)}
-              isAccepting={acceptingProject === item.id}
+              onAccept={async () => {
+                if (!userProfile?.id) return;
+                const updated = await acceptProjectWithFirstCompatibleVehicle(item.id, userProfile.id);
+                if (updated) {
+                  await sendLocalNotification(
+                    'Proyecto aceptado',
+                    'Has aceptado un nuevo proyecto exitosamente'
+                  );
+                  refetch();
+                  setSelectedView(item.proyecto === 'Entrada' ? 'Entrada' : 'Salida');
+                }
+              }}
               icon={
                 item.proyecto.toLowerCase() === 'entrada'
                   ? <Ionicons name="arrow-down-circle-outline" size={28} color="#CE0E2D" />
@@ -290,21 +271,7 @@ const HomePageResponsable = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ProjectCard
-              type={getProjectType(item.projectType)}
-              date={formatDate(item.expirationDate || item.created_at)}
-              donors={1}
-              vehicleType={loadTypeLabels[item.loadType || 1] || 'Sin especificar'}
-              address={item.direction || 'Sin dirección'}
-              donorName={item.title || 'Sin nombre'}
-              products={getProducts(item.foodList)}
-              status={
-                item.projectState === 1 ? 'confirmacion' :
-                item.projectState === 2 ? 'confirmacion' :
-                item.projectState === 3 ? 'en_recoleccion' :
-                item.projectState === 4 ? 'recolectado' :
-                'finalizado'
-              }
-              tokens={item.token ? [Number(item.token)] : []}
+              project={item}
               onStart={() => handleProjectStateChange(item.id, 3)}
               onCollected={() => handleProjectStateChange(item.id, 4)}
               onFinalize={() => handleProjectStateChange(item.id, 5)}
@@ -358,27 +325,6 @@ const styles = StyleSheet.create({
     minWidth: 48,
     marginRight: 0,
     elevation: 6,
-  },
-  tipoFiltroRow: {
-    flexDirection: 'row',
-    marginTop: 8,
-    gap: 8,
-  },
-  tipoFiltroBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: '#EDEDED',
-  },
-  tipoFiltroBtnActive: {
-    backgroundColor: '#CE0E2D',
-  },
-  tipoFiltroText: {
-    color: '#5C5C60',
-    fontWeight: 'bold',
-  },
-  tipoFiltroTextActive: {
-    color: '#fff',
   },
   loadingContainer: {
     flex: 1,

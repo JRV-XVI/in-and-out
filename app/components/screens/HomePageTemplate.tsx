@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MainTabBar from '../../components/navigation/MainTabBar';
-import Button from '../../components/common/Button'; // Ajusta la ruta si es necesario
+import Button from '../../components/common/Button';
 import { useUser } from '../../context/UserContext';
-import History from '../../components/screens/History'; // Importa History
+import History from '../../components/screens/History';
 import Search from '../../components/screens/Search';
+import RefreshButton from '../../components/common/RefreshButton';
 
 interface TemplateProps {
   activeTab: string;
@@ -16,7 +17,8 @@ interface TemplateProps {
   primaryButtonText?: string;
   secondaryButtonText?: string;
   sectionTitle?: string;
-  sectionTitleAction?: React.ReactNode; // Nuevo: elemento opcional junto al título
+  sectionTitleAction?: React.ReactNode;
+  onRefreshSection?: () => Promise<void> | void;
 }
 
 const HomePageTemplate = ({
@@ -29,20 +31,19 @@ const HomePageTemplate = ({
   primaryButtonText = "Texto cambio",
   secondaryButtonText = "Texto cambio",
   sectionTitle = "Texto cambio",
-  sectionTitleAction // Nuevo: elemento opcional junto al título
+  sectionTitleAction,
+  onRefreshSection,
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
-  const [showHistory, setShowHistory] = useState(false); // Estado para mostrar History
-  const [selectedTabBar, setSelectedTabBar] = useState<string | null>(null); // Nuevo estado para tabbar
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedTabBar, setSelectedTabBar] = useState<string | null>(null);
   const { user } = useUser();
 
-  // Si headerTitle no está definido, muestra "Hola, <usuario>"
   const displayTitle = headerTitle ?? `Hola, ${user?.name ?? 'Usuario'}`;
 
-  // Maneja el tab de historial desde aquí
   const handleTabBarPress = (tab: string) => {
-    setSelectedButton(null); // Deselecciona los botones primario/secundario
-    setSelectedTabBar(tab); // Selecciona el tabbar
+    setSelectedButton(null);
+    setSelectedTabBar(tab);
     if (tab === 'list') {
       setShowHistory(prev => !prev);
     } else {
@@ -53,20 +54,19 @@ const HomePageTemplate = ({
 
   const handlePrimaryAction = () => {
     setSelectedButton('primary');
-    setSelectedTabBar(null); // Deselecciona el tabbar
+    setSelectedTabBar(null);
     onPrimaryAction();
   };
 
   const handleSecondaryAction = () => {
     setSelectedButton('secondary');
-    setSelectedTabBar(null); // Deselecciona el tabbar
+    setSelectedTabBar(null);
     onSecondaryAction();
   };
 
-  // Determina el tab activo para MainTabBar
   const mainTabBarActive =
     selectedButton === 'primary' || selectedButton === 'secondary'
-      ? 'none' // <-- Ningún tab visualmente activo
+      ? 'none'
       : showHistory
       ? 'list'
       : selectedTabBar ?? activeTab;
@@ -111,10 +111,12 @@ const HomePageTemplate = ({
           <>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-              {sectionTitleAction && (
-                <View style={styles.sectionTitleAction}>
-                  {sectionTitleAction}
-                </View>
+              {onRefreshSection && (
+                <RefreshButton 
+                  onRefresh={onRefreshSection} 
+                  color="#CE0E2D" 
+                  size={24}
+                />
               )}
             </View>
             {children}
@@ -191,12 +193,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     maxWidth: '48%',
   },
-  buttonTextGray: {
-    color: 'red',
-  },
   buttonSelected: {
     backgroundColor: '#5C5C60',
-    color: 'black',
   },
   contentCard: {
     flex: 1,
@@ -209,21 +207,16 @@ const styles = StyleSheet.create({
   },
   sectionTitleContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 8,
   },
   sectionTitle: {
     color: '#5C5C60',
     fontWeight: '900',
-    fontSize: 28,
+    fontSize: 24,
     flex: 1,
-    textAlign: 'center', 
-  },
-  sectionTitleAction: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
   bottomBar: {
     backgroundColor: '#fff',
