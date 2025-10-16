@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, TouchableOpacity, StyleSheet, View, Text, ActivityIndicator, Alert } from 'react-native';
+import { FlatList, View, Text, ActivityIndicator, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
@@ -8,7 +8,9 @@ import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
 import { useProjects } from '../../hooks/useProjects';
 import { useAuthContext } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
+import { Project } from '../../types/project';
 
 // Simulación de solicitudes locales
 const solicitudesPrueba = [
@@ -23,26 +25,13 @@ function parseFecha(fecha: string) {
   return new Date(Number(`20${y}`), Number(m) - 1, Number(d));
 }
 
-function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day}/${month}/${year}`;
-}
-
-const loadTypeLabels: Record<number, string> = {
-  1: 'Carga Normal',
-  2: 'Carga Delicada',
-  3: 'Carga con Congelador',
-};
-
 const tipoOpciones = ['Todas', 'Entrada', 'Salida'] as const;
 type TipoFiltro = typeof tipoOpciones[number];
 
 const HomePageResponsable = () => {
   const navigation = useNavigation();
   const { authUser, userProfile } = useAuthContext();
+  const { sendLocalNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<'home' | 'Entrada' | 'Salida' | 'Abiertas'>('home');
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
@@ -70,7 +59,6 @@ const HomePageResponsable = () => {
     try {
       setAcceptingProject(projectId);
 
-      // Actualizar el proyecto en Supabase
       const { data, error: updateError } = await supabase
         .from('project')
         .update({
@@ -85,6 +73,12 @@ const HomePageResponsable = () => {
         throw updateError;
       }
 
+      // Enviar notificación
+      await sendLocalNotification(
+        'Proyecto aceptado',
+        'Has aceptado un nuevo proyecto exitosamente'
+      );
+
       Alert.alert(
         'Éxito',
         'Has aceptado el proyecto correctamente',
@@ -92,10 +86,8 @@ const HomePageResponsable = () => {
           {
             text: 'OK',
             onPress: () => {
-              // Refrescar la lista de proyectos
               refetch();
-              // Cambiar a la vista correspondiente
-              setSelectedView('Entrada'); // O determinar según el tipo de proyecto
+              setSelectedView('Entrada');
             }
           }
         ]
@@ -122,6 +114,22 @@ const HomePageResponsable = () => {
 
       if (updateError) {
         throw updateError;
+      }
+
+      // Enviar notificación
+      const stateMessages: Record<number, string> = {
+        2: 'El proyecto está en proceso de empaquetado',
+        3: 'El transporte ha llegado',
+        4: 'El proyecto está en camino',
+        5: 'El proyecto ha sido entregado',
+        6: 'El proyecto ha sido completado'
+      };
+      
+      if (stateMessages[newState]) {
+        await sendLocalNotification(
+          'Estado actualizado',
+          stateMessages[newState]
+        );
       }
 
       Alert.alert('Éxito', 'Estado del proyecto actualizado');
@@ -153,7 +161,7 @@ const HomePageResponsable = () => {
   let proyectosFiltrados = projects;
   if (selectedView !== 'Abiertas') {
     proyectosFiltrados = [...projects]
-      .filter(p => p.projectState !== 6) // <-- Oculta los finalizados
+      .filter(p => p.projectState !== 6)
       .sort((a, b) => {
         const dateA = new Date(a.expirationDate || a.created_at);
         const dateB = new Date(b.expirationDate || b.created_at);
@@ -163,25 +171,6 @@ const HomePageResponsable = () => {
       });
   }
 
-  // Extraer productos del foodList JSON
-  const getProducts = (foodList: any): string[] => {
-    if (!foodList || typeof foodList !== 'object') return [];
-    return Object.values(foodList)
-      .filter((item: any) => item && item.nombre)
-      .map((item: any) => item.nombre);
-  };
-
-  const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
-    if (typeof projectType === 'string') {
-      return projectType.toLowerCase() === 'entrada' ? 'entrada' : 'salida';
-    }
-    if (typeof projectType === 'number') {
-      return projectType === 1 ? 'entrada' : 'salida';
-    }
-    return 'salida';
-  };
-
-  // Si no hay usuario autenticado, mostrar mensaje
   if (!responsableId) {
     return (
       <View style={styles.errorContainer}>
@@ -204,34 +193,18 @@ const HomePageResponsable = () => {
           ? 'Solicitudes Abiertas'
           : `Proyectos de ${selectedView}`
       }
+      onRefreshSection={refetch} // <-- Aquí pasas la función de refresco
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
           <View style={styles.filterContainer}>
             <Filter
               label="Ordenar por:"
-              active={filterOrder}
-              onChange={setFilterOrder}
+              activeOrder={filterOrder}
+              onOrderChange={setFilterOrder}
+              tipoActive={tipoFiltro}
+              onTipoChange={setTipoFiltro}
             />
-            <View style={styles.tipoFiltroRow}>
-              {tipoOpciones.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[
-                    styles.tipoFiltroBtn,
-                    tipoFiltro === opt && styles.tipoFiltroBtnActive,
-                  ]}
-                  onPress={() => setTipoFiltro(opt)}
-                >
-                  <Text style={[
-                    styles.tipoFiltroText,
-                    tipoFiltro === opt && styles.tipoFiltroTextActive,
-                  ]}>
-                    {opt}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
           <View style={styles.vehicleButtonContainer}>
             <TouchableOpacity
@@ -244,7 +217,6 @@ const HomePageResponsable = () => {
         </View>
       )}
 
-      {/* Mostrar SolicitudCard en Abiertas, ProjectCard en proyectos */}
       {selectedView === 'Abiertas' ? (
         <FlatList
           data={solicitudesFiltradas}
@@ -290,21 +262,7 @@ const HomePageResponsable = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ProjectCard
-              type={getProjectType(item.projectType)}
-              date={formatDate(item.expirationDate || item.created_at)}
-              donors={1}
-              vehicleType={loadTypeLabels[item.loadType || 1] || 'Sin especificar'}
-              address={item.direction || 'Sin dirección'}
-              donorName={item.title || 'Sin nombre'}
-              products={getProducts(item.foodList)}
-              status={
-                item.projectState === 1 ? 'confirmacion' :
-                item.projectState === 2 ? 'confirmacion' :
-                item.projectState === 3 ? 'en_recoleccion' :
-                item.projectState === 4 ? 'recolectado' :
-                'finalizado'
-              }
-              tokens={item.token ? [Number(item.token)] : []}
+              project={item}
               onStart={() => handleProjectStateChange(item.id, 3)}
               onCollected={() => handleProjectStateChange(item.id, 4)}
               onFinalize={() => handleProjectStateChange(item.id, 5)}
@@ -358,27 +316,6 @@ const styles = StyleSheet.create({
     minWidth: 48,
     marginRight: 0,
     elevation: 6,
-  },
-  tipoFiltroRow: {
-    flexDirection: 'row',
-    marginTop: 8,
-    gap: 8,
-  },
-  tipoFiltroBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: '#EDEDED',
-  },
-  tipoFiltroBtnActive: {
-    backgroundColor: '#CE0E2D',
-  },
-  tipoFiltroText: {
-    color: '#5C5C60',
-    fontWeight: 'bold',
-  },
-  tipoFiltroTextActive: {
-    color: '#fff',
   },
   loadingContainer: {
     flex: 1,
