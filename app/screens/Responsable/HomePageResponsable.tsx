@@ -1,29 +1,65 @@
-import React, { useState } from 'react';
-import { FlatList, View, Text, ActivityIndicator, Alert, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { FlatList, TouchableOpacity, StyleSheet, View, Text, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import SolicitudCard from '../../components/specialCards/SolicitudCard';
 import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
-import { useProjects } from '../../hooks/useProjects';
+import RefreshButton from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { supabase } from '../../lib/supabase';
+import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects';
+import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
 import { Project } from '../../types/project';
 
-// Simulación de solicitudes locales
-const solicitudesPrueba = [
-  { id: "1", fecha: "04/09/25", tipo: "Alimento seco", carga: "Chica", voluntarios: "1", proyecto: "Salida" },
-  { id: "2", fecha: "04/09/25", tipo: "Alimento seco", carga: "Pesada", voluntarios: "2", proyecto: "Entrada" },
-  { id: "3", fecha: "04/09/25", tipo: "Alimento congelado", carga: "Mediana", voluntarios: "3", proyecto: "Salida" },
-  { id: "4", fecha: "04/09/25", tipo: "Fruta", carga: "Pesada", voluntarios: "1", proyecto: "Salida" },
-];
+// Las solicitudes en 'Abiertas' vendrán desde proyectosCompatiblesAdaptados
+
+// Estado para proyectos compatibles desde backend
+type UIProject = {
+  id: string;
+  fecha: string;
+  destinos?: string;
+  donadores: number;
+  vehiculo?: string;
+  carga: string;
+  status: number;
+  direccion: string;
+  donador?: string;
+  productos: string | string[];
+  tokens: string[];
+  tipo: 'Entrada' | 'Salida';
+};
 
 function parseFecha(fecha: string) {
   const [d, m, y] = fecha.split('/');
   return new Date(Number(`20${y}`), Number(m) - 1, Number(d));
 }
+
+function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
+// Añadir: etiqueta de carga por peso con los rangos solicitados
+function getCargaLabelByWeight(weight?: number | null): string {
+  if (typeof weight !== 'number') return 'Sin dato';
+  if (weight > 10) return 'Carga pesada';
+  if (weight > 5 && weight <= 10) return 'Carga mediana';
+  if (weight > 0 && weight < 5) return 'Carga chica';
+  // Nota: weight === 5 no entra en ningún rango según tu regla actual
+  return 'Sin dato';
+}
+
+const loadTypeLabels: Record<number, string> = {
+  1: 'Carga Normal',
+  2: 'Carga Delicada',
+  3: 'Carga con Congelador',
+};
 
 const tipoOpciones = ['Todas', 'Entrada', 'Salida'] as const;
 type TipoFiltro = typeof tipoOpciones[number];
@@ -32,34 +68,59 @@ const HomePageResponsable = () => {
   const navigation = useNavigation();
   const { authUser, userProfile } = useAuthContext();
   const { sendLocalNotification } = useNotifications();
+
   const [activeTab, setActiveTab] = useState<'home' | 'Entrada' | 'Salida' | 'Abiertas'>('home');
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
-  const [acceptingProject, setAcceptingProject] = useState<string | null>(null);
+  // Hooks de datos
+  const {
+    projects: proyectosAceptados,
+    loading: loadingAceptados,
+    error: errorAceptados,
+    refetch: refetchAceptados,
+  } = useProjects(userProfile?.id ?? '');
 
-  const responsableId = String(userProfile?.id || authUser?.id || '');
+  const {
+    projects: proyectosCompatibles,
+    loading: loadingCompatibles,
+    error: errorCompatibles,
+    refetch: refetchCompatibles,
+  } = useCompatibleProjects(userProfile?.id);
 
-  const tipoProyecto = selectedView !== 'Abiertas' ? selectedView : undefined;
-  const { projects, loading, error, refetch } = useProjects(responsableId, tipoProyecto);
-
-  const handleTabPress = (tab: string) => {
-    setActiveTab(tab as any);
-    if (tab === 'home') setSelectedView('Abiertas');
-    else setSelectedView(tab as 'Entrada' | 'Salida');
+  const loading = selectedView === 'Abiertas' ? loadingCompatibles : loadingAceptados;
+  const error = selectedView === 'Abiertas' ? errorCompatibles : errorAceptados;
+  const refetch = () => {
+    refetchCompatibles();
+    refetchAceptados();
   };
 
-  // Función para aceptar una solicitud
-  const handleAcceptSolicitud = async (projectId: string) => {
-    if (!responsableId) {
-      Alert.alert('Error', 'No se encontró el ID del responsable');
-      return;
-    }
+  // Adaptar Project -> UIProject respetando UI existente (Abiertas)
+  const proyectosCompatiblesAdaptados: UIProject[] = useMemo(() => {
+    const adapted = (proyectosCompatibles || []).map(p => {
+      const tipo: 'Entrada' | 'Salida' = p.projectType === 1 ? 'Entrada' : 'Salida';
+      const status = typeof p.projectState === 'number' ? p.projectState : 0;
+      const fecha = formatDate(p.created_at as any);
+      const carga = getCargaLabelByWeight(p.weight);
 
-    try {
-      setAcceptingProject(projectId);
+      console.log('[UI] Compatibles map:', { id: p.id, weight: p.weight, carga });
 
-      const { data, error: updateError } = await supabase
+      return {
+        id: String(p.id),
+        fecha,
+        donadores: Number(p.token ?? 0),
+        carga,
+        status,
+        direccion: p.direction || '—',
+        productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
+        tokens: p.token != null ? [String(p.token)] : [],
+        tipo,
+      } as UIProject;
+    });
+    return adapted;
+  }, [proyectosCompatibles]);
+
+  const { data, error: updateError } = await supabase
         .from('project')
         .update({
           projectState: 2,
@@ -68,10 +129,15 @@ const HomePageResponsable = () => {
         .eq('id', projectId)
         .select()
         .single();
+  // Aceptados -> Entrada
+  const proyectosAceptadosEntrada: UIProject[] = useMemo(() => {
+    const adapted = (proyectosAceptados || [])
+      .filter(p => p.projectType === 1)
+      .map(p => {
+        const fecha = formatDate(p.created_at as any);
+        const carga = getCargaLabelByWeight(p.weight);
 
-      if (updateError) {
-        throw updateError;
-      }
+        console.log('[UI] Aceptados Entrada map:', { id: p.id, weight: p.weight, carga });
 
       // Enviar notificación
       await sendLocalNotification(
@@ -92,29 +158,45 @@ const HomePageResponsable = () => {
           }
         ]
       );
+        return {
+          id: String(p.id),
+          fecha,
+          donadores: Number(p.token ?? 0),
+          carga,
+          status: typeof p.projectState === 'number' ? p.projectState : 0,
+          direccion: p.direction || '—',
+          productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
+          tokens: p.token != null ? [String(p.token)] : [],
+          tipo: 'Entrada',
+        } as UIProject;
+      });
+    return adapted;
+  }, [proyectosAceptados]);
 
-    } catch (err: any) {
-      console.error('Error al aceptar solicitud:', err);
-      Alert.alert(
-        'Error',
-        err.message || 'No se pudo aceptar la solicitud. Intenta nuevamente.'
-      );
-    } finally {
-      setAcceptingProject(null);
-    }
-  };
+  // Aceptados -> Salida
+  const proyectosAceptadosSalida: UIProject[] = useMemo(() => {
+    const adapted = (proyectosAceptados || [])
+      .filter(p => p.projectType === 2)
+      .map(p => {
+        const fecha = formatDate(p.created_at as any);
+        const carga = getCargaLabelByWeight(p.weight);
 
-  // Función para manejar cambios de estado en ProjectCard
-  const handleProjectStateChange = async (projectId: string, newState: number) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('project')
-        .update({ projectState: newState })
-        .eq('id', projectId);
+        console.log('[UI] Aceptados Salida map:', { id: p.id, weight: p.weight, carga });
 
-      if (updateError) {
-        throw updateError;
-      }
+        return {
+          id: String(p.id),
+          fecha,
+          donadores: Number(p.token ?? 0),
+          carga,
+          status: typeof p.projectState === 'number' ? p.projectState : 0,
+          direccion: p.direction || '—',
+          productos: Array.isArray(p.foodList) ? p.foodList.join(', ') : (p.foodList ? JSON.stringify(p.foodList) : ''),
+          tokens: p.token != null ? [String(p.token)] : [],
+          tipo: 'Salida',
+        } as UIProject;
+      });
+    return adapted;
+  }, [proyectosAceptados]);
 
       // Enviar notificación
       const stateMessages: Record<number, string> = {
@@ -138,10 +220,21 @@ const HomePageResponsable = () => {
       console.error('Error al actualizar estado:', err);
       Alert.alert('Error', 'No se pudo actualizar el estado del proyecto');
     }
+  const handleTabPress = (tab: string) => {
+    setActiveTab(tab as any);
+    if (tab === 'home') setSelectedView('Abiertas');
+    else setSelectedView(tab as 'Entrada' | 'Salida');
   };
 
-  // Filtrar y ordenar solicitudes
-  let solicitudesFiltradas = solicitudesPrueba;
+  // Filtrar y ordenar solicitudes (usando proyectos compatibles como solicitudes)
+  let solicitudesFiltradas = proyectosCompatiblesAdaptados.map(p => ({
+    id: p.id,
+    fecha: p.fecha,
+    tipo: p.tipo === 'Entrada' ? 'Entrada' : 'Salida',
+    carga: p.carga.includes('pesada') ? 'Pesada' : p.carga.includes('mediana') ? 'Mediana' : 'Chica',
+    voluntarios: String(p.donadores ?? 0),
+    proyecto: p.tipo,
+  }));
   if (selectedView === 'Abiertas') {
     if (tipoFiltro !== 'Todas') {
       solicitudesFiltradas = solicitudesFiltradas.filter(
@@ -157,8 +250,8 @@ const HomePageResponsable = () => {
     });
   }
 
-  // Filtrar y ordenar proyectos desde Supabase
-  let proyectosFiltrados = projects;
+  // Filtrar y ordenar proyectos (a partir de proyectosAdaptados)
+  let proyectosFiltrados = proyectosCompatiblesAdaptados;
   if (selectedView !== 'Abiertas') {
     proyectosFiltrados = [...projects]
       .filter(p => p.projectState !== 6)
@@ -177,6 +270,7 @@ const HomePageResponsable = () => {
         <Text style={styles.errorText}>No se encontró usuario autenticado</Text>
       </View>
     );
+
   }
 
   return (
@@ -194,6 +288,7 @@ const HomePageResponsable = () => {
           : `Proyectos de ${selectedView}`
       }
       onRefreshSection={refetch} // <-- Aquí pasas la función de refresco
+
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
@@ -228,8 +323,14 @@ const HomePageResponsable = () => {
               carga={item.carga}
               voluntarios={item.voluntarios}
               proyecto={item.proyecto}
-              onAccept={() => handleAcceptSolicitud(item.id)}
-              isAccepting={acceptingProject === item.id}
+              onAccept={async () => {
+                if (!userProfile?.id) return;
+                const updated = await acceptProjectWithFirstCompatibleVehicle(item.id, userProfile.id);
+                if (updated) {
+                  // Refrescar listas tras aceptar
+                  refetch();
+                }
+              }}
               icon={
                 item.proyecto.toLowerCase() === 'entrada'
                   ? <Ionicons name="arrow-down-circle-outline" size={28} color="#CE0E2D" />
