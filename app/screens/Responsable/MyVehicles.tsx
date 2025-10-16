@@ -111,15 +111,18 @@ const MyVehicles = ({ navigation }: any) => {
     setSaving(true);
 
     try {
+      const mappedType = mapTipoToLoadType(tipo);
       const newVehicle: Omit<Vehicle, 'plate'> & { plate: string } = {
         plate: normalizedPlate,
-        userResponsible_id: user.id, // <-- asignamos ID del usuario
-        weightType: null,
-        loadType: mapTipoToLoadType(tipo),
+        // Corregimos: el tipo seleccionado representa el tipo de peso.
+        // Asignamos weightType correctamente y mantenemos loadType para no romper la UI actual.
+        weightType: mappedType,
+        loadType: mappedType,
         isAvailable: false,
         photo: photo || null,
       };
 
+      console.log('📝 [CREATE] Vehículo a crear:', JSON.stringify(newVehicle));
       const created = await createVehicle(newVehicle as Vehicle, user.id); // <-- pasamos userId
       if (!created) {
         Alert.alert('Error', 'No se pudo crear el vehículo.');
@@ -127,6 +130,7 @@ const MyVehicles = ({ navigation }: any) => {
         return;
       }
 
+      console.log('✅ [CREATE] Vehículo creado:', JSON.stringify(created));
       setVehiculos(prev => [created, ...prev]);
       setTipo('Carga chica');
       setPlate('');
@@ -231,7 +235,6 @@ const MyVehicles = ({ navigation }: any) => {
               renderItem={({ item }) => (
                 <VehicleCard
                   data={item}
-                  onToggleAvailability={() => handleToggleAvailability(item)}
                   onDelete={() => handleDelete(item.plate)}
                 />
               )}
@@ -299,7 +302,7 @@ const MyVehicles = ({ navigation }: any) => {
             onChangeText={setNotes}
           />
 
-          <Button title={saving ? 'Guardando...' : 'Registrar Vehículo'} onPress={handleRegistrar} disabled={saving} />
+          <Button title={saving ? 'Guardando...' : 'Registrar Vehículo'} onPress={handleRegistrar} />
         </View>
       )}
     </HomePageTemplate>
