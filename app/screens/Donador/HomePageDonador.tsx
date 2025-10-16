@@ -8,6 +8,7 @@ import Card from '../../components/common/Card';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
+import RefreshButton from '../../components/common/RefreshButton';
 import { createProject, getProjectByDonador } from '../../services/projects';
 import { useAuthContext } from '../../context/AuthContext';
 import { Project } from '../../types/project';
@@ -69,7 +70,12 @@ const HomePageDonador = () => {
       // Convertir el ID numérico a string para la búsqueda
       const projects = await getProjectByDonador(userProfile.id.toString());
       console.log('Proyectos encontrados:', projects);
-      setMyProjects(projects);
+      
+      // Filtrar proyectos que no estén en estado 6 (completados/archivados)
+      const activeProjects = projects.filter(project => project.projectState !== 6);
+      console.log('Proyectos activos (excluyendo estado 6):', activeProjects);
+      
+      setMyProjects(activeProjects);
     } catch (error) {
       console.error('Error cargando proyectos:', error);
       setAlertMessage('Error al cargar tus donaciones');
@@ -298,6 +304,15 @@ const HomePageDonador = () => {
         : selectedView === 'misDonaciones' ? 'Mis Donaciones'
         : 'Registrar Donaciones'
       }
+      sectionTitleAction={
+        selectedView === 'misDonaciones' ? (
+          <RefreshButton
+            onRefresh={loadMyProjects}
+            color="#CE0E2D"
+            size={24}
+          />
+        ) : undefined
+      }
     >
       {selectedView === 'estadisticas' && (
         <>
@@ -322,13 +337,14 @@ const HomePageDonador = () => {
       )}
 
       {selectedView === 'misDonaciones' && (
-        <ScrollView style={styles.donationsContainer} showsVerticalScrollIndicator={true}>
-          {loadingProjects ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#CE0E2D" />
-              <Text style={styles.loadingText}>Cargando tus donaciones...</Text>
-            </View>
-          ) : myProjects.length === 0 ? (
+        <View style={styles.misDonacionesWrapper}>
+          <ScrollView style={styles.donationsContainer} showsVerticalScrollIndicator={true}>
+            {loadingProjects ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#CE0E2D" />
+                <Text style={styles.loadingText}>Cargando tus donaciones...</Text>
+              </View>
+            ) : myProjects.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="folder-open-outline" size={80} color="#D0D0D0" />
               <Text style={styles.emptyTitle}>No tienes donaciones</Text>
@@ -353,7 +369,8 @@ const HomePageDonador = () => {
               />
             ))
           )}
-        </ScrollView>
+          </ScrollView>
+        </View>
       )}
 
       {selectedView === 'registrarDonaciones' && (
@@ -638,6 +655,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   // Estilos para "Mis Donaciones"
+  misDonacionesWrapper: {
+    flex: 1,
+    width: '100%',
+  },
   donationsContainer: {
     flex: 1,
     width: '100%',

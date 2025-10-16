@@ -16,6 +16,7 @@ interface TemplateProps {
   primaryButtonText?: string;
   secondaryButtonText?: string;
   sectionTitle?: string;
+  sectionTitleAction?: React.ReactNode; // Nuevo: elemento opcional junto al título
 }
 
 const HomePageTemplate = ({
@@ -27,7 +28,8 @@ const HomePageTemplate = ({
   headerTitle,
   primaryButtonText = "Texto cambio",
   secondaryButtonText = "Texto cambio",
-  sectionTitle = "Texto cambio"
+  sectionTitle = "Texto cambio",
+  sectionTitleAction // Nuevo: elemento opcional junto al título
 }: TemplateProps) => {
   const [selectedButton, setSelectedButton] = useState<'primary' | 'secondary' | null>(null);
   const [showHistory, setShowHistory] = useState(false); // Estado para mostrar History
@@ -107,7 +109,14 @@ const HomePageTemplate = ({
           <Search />
         ) : (
           <>
-            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+              {sectionTitleAction && (
+                <View style={styles.sectionTitleAction}>
+                  {sectionTitleAction}
+                </View>
+              )}
+            </View>
             {children}
           </>
         )}
@@ -198,12 +207,23 @@ const styles = StyleSheet.create({
     marginTop: -20,
     zIndex: 2,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     color: '#5C5C60',
     fontWeight: '900',
     fontSize: 28,
-    marginBottom: 12,
+    flex: 1,
     textAlign: 'center', 
+  },
+  sectionTitleAction: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   bottomBar: {
     backgroundColor: '#fff',
