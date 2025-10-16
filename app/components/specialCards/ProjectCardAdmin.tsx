@@ -13,8 +13,7 @@ const statusConfig = {
   2: { label: 'Confirmado', color: '#3B82F6', icon: 'checkmark-circle-outline' },
   3: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
   4: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
-  5: { label: 'Completado', color: '#059669', icon: 'checkmark-circle' },
-  6: { label: 'Finalizado', color: '#059669', icon: 'checkmark-circle' },
+  5: { label: 'Finalizado', color: '#059669', icon: 'checkmark-circle' },
 };
 
 const loadTypeLabels: Record<number, string> = {
@@ -23,7 +22,7 @@ const loadTypeLabels: Record<number, string> = {
   3: 'Carga con Congelador',
 };
 
-const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
+const ProjectCardAdmin: React.FC<DonationCardProps> = ({ project, onPress }) => {
   const [expanded, setExpanded] = useState(false);
 
   const handlePress = () => {
@@ -461,4 +460,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DonationCard;
+export default ProjectCardAdmin;

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import SolicitudCard from '../../components/specialCards/SolicitudCard';
-import ProjectCard from '../../components/specialCards/ProjectCard'; // Importa tu card de proyecto
+import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
 import { useAuthContext } from '../../context/AuthContext';
 import { acceptProjectWithFirstCompatibleVehicle, getAcceptedProjectsForResponsible, getCompatibleValidatedProjectsForUser } from '../../services/projects';
@@ -32,6 +32,20 @@ function parseFecha(fecha: string) {
   const [d, m, y] = fecha.split('/');
   return new Date(Number(`20${y}`), Number(m) - 1, Number(d));
 }
+
+function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
+const loadTypeLabels: Record<number, string> = {
+  1: 'Carga Normal',
+  2: 'Carga Delicada',
+  3: 'Carga con Congelador',
+};
 
 const tipoOpciones = ['Todas', 'Entrada', 'Salida'] as const;
 type TipoFiltro = typeof tipoOpciones[number];
@@ -203,9 +217,9 @@ const HomePageResponsable = () => {
       onTabPress={handleTabPress}
       onPrimaryAction={() => setSelectedView('Entrada')}
       onSecondaryAction={() => setSelectedView('Salida')}
-      headerTitle="Hola, { Responsable }"
-      primaryButtonText="Proyectos Entrada"
-      secondaryButtonText="Proyectos Salida"
+      headerTitle={`Hola, ${userProfile?.name || 'Responsable'}`}
+      primaryButtonText="Entrada"
+      secondaryButtonText="Salida"
       sectionTitle={
         selectedView === 'Abiertas'
           ? 'Solicitudes Abiertas'
@@ -281,6 +295,23 @@ const HomePageResponsable = () => {
           )}
           contentContainerStyle={{ paddingBottom: 120 }}
         />
+      ) : loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#CE0E2D" />
+          <Text style={styles.loadingText}>Cargando proyectos...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+            <Text style={styles.retryText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : proyectosFiltrados.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="folder-open-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyText}>No hay proyectos de {selectedView}</Text>
+        </View>
       ) : (
         <FlatList
           data={proyectosFiltrados}
@@ -295,13 +326,29 @@ const HomePageResponsable = () => {
               donorName={item.donador || ''}
               products={typeof item.productos === 'string' ? item.productos.split(',').map(p => p.trim()) : item.productos}
               status={
-                item.status === 0 ? 'confirmacion' :
-                item.status === 1 ? 'en_recoleccion' :
-                item.status === 2 ? 'recolectado' :
+                item.projectState === 1 ? 'confirmacion' :
+                item.projectState === 2 ? 'confirmacion' :
+                item.projectState === 3 ? 'en_recoleccion' :
+                item.projectState === 4 ? 'recolectado' :
                 'finalizado'
               }
-              tokens={item.tokens.map(Number)}
-              onStart={() => console.log(`Iniciar proyecto ${item.id}`)}
+              tokens={item.token ? [Number(item.token)] : []}
+              onStart={() => handleProjectStateChange(item.id, 3)}
+              onCollected={() => handleProjectStateChange(item.id, 4)}
+              onFinalize={() => handleProjectStateChange(item.id, 5)}
+              onComplete={() => {
+                Alert.alert(
+                  'Confirmar',
+                  '¿Deseas terminar este proyecto?',
+                  [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                      text: 'Confirmar',
+                      onPress: () => handleProjectStateChange(item.id, 6)
+                    }
+                  ]
+                );
+              }}
             />
           )}
           contentContainerStyle={{ paddingBottom: 120 }}
@@ -360,6 +407,50 @@ const styles = StyleSheet.create({
   },
   tipoFiltroTextActive: {
     color: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#888',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#CE0E2D',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#CE0E2D',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#888',
+    marginTop: 16,
   },
 });
 

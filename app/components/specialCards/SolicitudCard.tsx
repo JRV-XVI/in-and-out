@@ -2,14 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-interface SolicitudCardProps {
+export interface SolicitudCardProps {
   fecha: string;
   tipo: string;
   carga: string;
   voluntarios: string;
   proyecto: string;
-  onAccept?: () => void;
-  icon?: React.ReactNode; // Nuevo prop para el icono personalizado
+  onAccept: () => void;
+  icon?: React.ReactNode;
+  isAccepting?: boolean; // <-- Agrega esta línea
 }
 
 const SolicitudCard: React.FC<SolicitudCardProps> = ({
@@ -20,6 +21,7 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
   proyecto,
   onAccept,
   icon,
+  isAccepting,
 }) => {
   return (
     <View style={styles.card}>
@@ -50,7 +52,11 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
           <Text><Text style={styles.bold}>Proyecto: </Text>{proyecto}</Text>
         </View>
 
-        <TouchableOpacity style={styles.acceptBtn} onPress={onAccept}>
+        <TouchableOpacity
+          style={styles.acceptBtn}
+          onPress={onAccept}
+          disabled={isAccepting}
+        >
           <Text style={styles.acceptText}>Aceptar</Text>
         </TouchableOpacity>
       </View>

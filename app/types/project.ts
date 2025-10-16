@@ -16,4 +16,3 @@ export interface Project {
 	photo?: string | null;
 	notes?: string | null;
 }
-

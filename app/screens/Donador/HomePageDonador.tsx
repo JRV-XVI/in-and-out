@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Platform, Alert as RNAlert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Platform, Alert as RNAlert, ActivityIndicator } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
+import DonationCard from '../../components/specialCards/DonationCard';
 import Card from '../../components/common/Card';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
-import { createProject } from '../../services/projects';
+import RefreshButton from '../../components/common/RefreshButton';
+import { createProject, getProjectByDonador } from '../../services/projects';
 import { useAuthContext } from '../../context/AuthContext';
+import { Project } from '../../types/project';
 
 interface Articulo {
   id: string;
@@ -17,7 +20,7 @@ interface Articulo {
 }
 
 const HomePageDonador = () => {
-  const { authUser } = useAuthContext();
+  const { authUser, userProfile } = useAuthContext();
   const [activeTab, setActiveTab] = useState('home');
   const [selectedView, setSelectedView] = useState<'estadisticas' | 'misDonaciones' | 'registrarDonaciones'>('estadisticas');
 
@@ -34,6 +37,54 @@ const HomePageDonador = () => {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Estados para mis donaciones
+  const [myProjects, setMyProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // Debug: Verificar userProfile
+  useEffect(() => {
+    console.log('=== DEBUG USER PROFILE ===');
+    console.log('userProfile:', userProfile);
+    console.log('userProfile?.id (ID numérico):', userProfile?.id);
+    console.log('authUser?.id (UUID):', authUser?.id);
+  }, [userProfile, authUser]);
+
+  // Cargar proyectos del donador cuando cambie la vista a "misDonaciones"
+  useEffect(() => {
+    if (selectedView === 'misDonaciones' && userProfile?.id) {
+      console.log('Cargando proyectos para userProfile.id:', userProfile.id);
+      loadMyProjects();
+    }
+  }, [selectedView, userProfile?.id]);
+
+  const loadMyProjects = async () => {
+    if (!userProfile?.id) {
+      console.log('No hay userProfile.id disponible');
+      return;
+    }
+
+    console.log('Buscando proyectos con creator_id:', userProfile.id);
+    setLoadingProjects(true);
+    try {
+      // Convertir el ID numérico a string para la búsqueda
+      const projects = await getProjectByDonador(userProfile.id.toString());
+      console.log('Proyectos encontrados:', projects);
+      
+      // Filtrar proyectos que no estén en estado 6 (completados/archivados)
+      const activeProjects = projects.filter(project => project.projectState !== 6);
+      console.log('Proyectos activos (excluyendo estado 6):', activeProjects);
+      
+      setMyProjects(activeProjects);
+    } catch (error) {
+      console.error('Error cargando proyectos:', error);
+      setAlertMessage('Error al cargar tus donaciones');
+      setAlertType('error');
+      setShowAlert(true);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
@@ -140,6 +191,11 @@ const HomePageDonador = () => {
   };
 
   const handleEnviar = () => {
+    // Debug: Ver los IDs disponibles
+    console.log('=== DEBUG EN ENVIAR ===');
+    console.log('userProfile?.id (ID numérico):', userProfile?.id);
+    console.log('authUser?.id (UUID):', authUser?.id);
+    
     if (!validarFormulario()) return;
 
     // Convertir la lista de artículos en un JSON
@@ -184,8 +240,10 @@ const HomePageDonador = () => {
                 photo: evidencia?.uri || null,
                 projectType: 1, // 1 para donación
                 projectState: 1, // No confirmado
-                creator_id: authUser?.id || null, // ID del donador autenticado
+                creator_id: userProfile?.id?.toString() || null, // ID numérico de la tabla users
               };
+
+              console.log('Datos a enviar:', projectData);
 
               // Guardar en Supabase
               const result = await createProject(projectData);
@@ -198,6 +256,11 @@ const HomePageDonador = () => {
 
                 // Limpiar formulario
                 limpiarFormulario();
+
+                // Recargar los proyectos
+                if (userProfile?.id) {
+                  loadMyProjects();
+                }
               } else {
                 setAlertMessage('Error al registrar la donación');
                 setAlertType('error');
@@ -241,6 +304,15 @@ const HomePageDonador = () => {
         : selectedView === 'misDonaciones' ? 'Mis Donaciones'
         : 'Registrar Donaciones'
       }
+      sectionTitleAction={
+        selectedView === 'misDonaciones' ? (
+          <RefreshButton
+            onRefresh={loadMyProjects}
+            color="#CE0E2D"
+            size={24}
+          />
+        ) : undefined
+      }
     >
       {selectedView === 'estadisticas' && (
         <>
@@ -265,8 +337,40 @@ const HomePageDonador = () => {
       )}
 
       {selectedView === 'misDonaciones' && (
-        <>
-        </>
+        <View style={styles.misDonacionesWrapper}>
+          <ScrollView style={styles.donationsContainer} showsVerticalScrollIndicator={true}>
+            {loadingProjects ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#CE0E2D" />
+                <Text style={styles.loadingText}>Cargando tus donaciones...</Text>
+              </View>
+            ) : myProjects.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="folder-open-outline" size={80} color="#D0D0D0" />
+              <Text style={styles.emptyTitle}>No tienes donaciones</Text>
+              <Text style={styles.emptySubtitle}>
+                Tus donaciones aparecerán aquí una vez que las registres
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => setSelectedView('registrarDonaciones')}
+              >
+                <Text style={styles.emptyButtonText}>Registrar Donación</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            myProjects.map((project) => (
+              <DonationCard
+                key={project.id}
+                project={project}
+                onPress={() => {
+                  console.log('Donación seleccionada:', project.id);
+                }}
+              />
+            ))
+          )}
+          </ScrollView>
+        </View>
       )}
 
       {selectedView === 'registrarDonaciones' && (
@@ -549,6 +653,61 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: {
     opacity: 0.5,
+  },
+  // Estilos para "Mis Donaciones"
+  misDonacionesWrapper: {
+    flex: 1,
+    width: '100%',
+  },
+  donationsContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    minHeight: 300,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#5C5C60',
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    minHeight: 400,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#5C5C60',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  emptyButton: {
+    backgroundColor: '#CE0E2D',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    elevation: 2,
+  },
+  emptyButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
