@@ -2,17 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
+import { Project } from '../../types/project';
 
 interface ProjectCardProps {
-  type: 'entrada' | 'salida';
-  date: string;
-  donors: number;
-  vehicleType: string;
-  address: string;
-  donorName: string;
-  products: string[];
-  status: 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado';
-  tokens: number[];
+  project: Project;
   onStart?: () => void;
   onCollected?: () => void;
   onFinalize?: () => void;
@@ -28,16 +21,54 @@ const statusConfig = {
 
 const statusOrder = ['confirmacion', 'en_recoleccion', 'recolectado', 'finalizado'];
 
+// Helper function to format date
+const formatDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+};
+
+// Helper to extract products from foodList
+const getProducts = (foodList: any): string[] => {
+  if (!foodList || typeof foodList !== 'object') return [];
+  return Object.values(foodList)
+    .filter((item: any) => item && item.nombre)
+    .map((item: any) => item.nombre);
+};
+
+// Helper to get project type
+const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
+  if (typeof projectType === 'string') {
+    return projectType.toLowerCase() === 'entrada' ? 'entrada' : 'salida';
+  }
+  if (typeof projectType === 'number') {
+    return projectType === 1 ? 'entrada' : 'salida';
+  }
+  return 'salida';
+};
+
+// Helper to get status from projectState
+const getStatus = (projectState: number | null | undefined): 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' => {
+  if (projectState === 1 || projectState === 2) return 'confirmacion';
+  if (projectState === 3) return 'en_recoleccion';
+  if (projectState === 4) return 'recolectado';
+  return 'finalizado';
+};
+
+// Helper to get vehicle type label
+const getVehicleTypeLabel = (loadType: number | null | undefined): string => {
+  const labels: Record<number, string> = {
+    1: 'Carga Normal',
+    2: 'Carga Delicada',
+    3: 'Carga con Congelador',
+  };
+  return labels[loadType || 1] || 'Sin especificar';
+};
+
 const ProjectCard: React.FC<ProjectCardProps> = ({
-  type,
-  date,
-  donors,
-  vehicleType,
-  address,
-  donorName,
-  products,
-  status,
-  tokens,
+  project,
   onStart,
   onCollected,
   onFinalize,
@@ -45,6 +76,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
+  
+  // Extract values from project
+  const type = getProjectType(project.projectType);
+  const date = formatDate(project.expirationDate || project.created_at);
+  const donors = 1; // Default value, can be adjusted if needed
+  const vehicleType = getVehicleTypeLabel(project.loadType);
+  const address = project.direction || 'Sin dirección';
+  const donorName = project.title || 'Sin nombre';
+  const products = getProducts(project.foodList);
+  const status = getStatus(project.projectState);
+  const tokens = project.token ? [Number(project.token)] : [];
+  
   const isEntrada = type === 'entrada';
   const currentStatus = statusConfig[status];
   const currentStatusIndex = statusOrder.indexOf(status);
@@ -125,7 +168,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </View>
         <View style={styles.mainInfo}>
           <Text style={styles.title} numberOfLines={2}>
-            Proyecto {isEntrada ? 'Entrada' : 'Salida'}
+            {donorName}
           </Text>
           <View style={styles.metaRow}>
             <View style={styles.loadTypeBadge}>

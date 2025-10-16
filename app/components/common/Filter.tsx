@@ -1,12 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
+type OrderOption = 'Completados' | 'Ascendente' | 'Descendente';
+type TipoOption = 'Todas' | 'Entrada' | 'Salida';
+
 interface FilterProps {
   label?: string;
-  active?: 'Completados' | 'Ascendente' | 'Descendente';
-  onChange?: (value: 'Completados' | 'Ascendente' | 'Descendente') => void;
+  activeOrder?: OrderOption;
+  onOrderChange?: (value: OrderOption) => void;
+  tipoActive?: TipoOption;
+  onTipoChange?: (value: TipoOption) => void;
 }
+
+const orderOptions: OrderOption[] = ['Completados', 'Ascendente', 'Descendente'];
+const tipoOptions: TipoOption[] = ['Todas', 'Entrada', 'Salida'];
 
 const getIcon = (active: string) => {
   if (active === 'Completados') {
@@ -21,63 +29,80 @@ const getIcon = (active: string) => {
   return <Ionicons name="filter" size={22} color="#CE0E2D" />;
 };
 
-const options: Array<'Completados' | 'Ascendente' | 'Descendente'> = [
-  'Completados',
-  'Ascendente',
-  'Descendente',
-];
-
 const Filter: React.FC<FilterProps> = ({
   label = 'Ordenar por:',
-  active = 'Completados',
-  onChange,
+  activeOrder = 'Completados',
+  onOrderChange,
+  tipoActive = 'Todas',
+  onTipoChange,
 }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
-  const handleSelect = (value: 'Completados' | 'Ascendente' | 'Descendente') => {
+  const handleOrderSelect = (value: OrderOption) => {
     setDropdownVisible(false);
-    if (onChange) onChange(value);
+    if (onOrderChange) onOrderChange(value);
   };
 
   return (
-    <View style={styles.filterRow}>
-      <Text style={styles.filterText}>
-        {label} <Text style={styles.filterActive}>{active}</Text>
-      </Text>
-      <TouchableOpacity
-        onPress={() => setDropdownVisible(v => !v)}
-        style={styles.iconBtn}
-      >
-        {getIcon(active)}
-        <Ionicons
-          name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
-          size={20}
-          color="#CE0E2D"
-          style={{ marginLeft: 4 }}
-        />
-      </TouchableOpacity>
-      {dropdownVisible && (
-        <View style={styles.dropdown}>
-          {options.map(opt => (
-            <TouchableOpacity
-              key={opt}
-              style={[
-                styles.optionBtn,
-                active === opt && styles.optionActive,
-              ]}
-              onPress={() => handleSelect(opt)}
-            >
-              <Text style={[
-                styles.optionText,
-                active === opt && styles.optionTextActive,
-              ]}>
-                {opt}
-              </Text>
-              {getIcon(opt)}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+    <View>
+      <View style={styles.filterRow}>
+        <Text style={styles.filterText}>
+          {label} <Text style={styles.filterActive}>{activeOrder}</Text>
+        </Text>
+        <TouchableOpacity
+          onPress={() => setDropdownVisible(v => !v)}
+          style={styles.iconBtn}
+        >
+          {getIcon(activeOrder)}
+          <Ionicons
+            name={dropdownVisible ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color="#CE0E2D"
+            style={{ marginLeft: 4 }}
+          />
+        </TouchableOpacity>
+        {dropdownVisible && (
+          <View style={styles.dropdown}>
+            {orderOptions.map(opt => (
+              <TouchableOpacity
+                key={opt}
+                style={[
+                  styles.optionBtn,
+                  activeOrder === opt && styles.optionActive,
+                ]}
+                onPress={() => handleOrderSelect(opt)}
+              >
+                <Text style={[
+                  styles.optionText,
+                  activeOrder === opt && styles.optionTextActive,
+                ]}>
+                  {opt}
+                </Text>
+                {getIcon(opt)}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+      <View style={styles.tipoFiltroRow}>
+        {tipoOptions.map(opt => (
+          <TouchableOpacity
+            key={opt}
+            style={[
+              styles.tipoFiltroBtn,
+              tipoActive === opt && styles.tipoFiltroBtnActive,
+            ]}
+            onPress={() => onTipoChange && onTipoChange(opt)}
+          >
+            <Text style={[
+              styles.tipoFiltroText,
+              tipoActive === opt && styles.tipoFiltroTextActive,
+            ]}>
+              {opt}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 };
@@ -136,6 +161,27 @@ const styles = StyleSheet.create({
   optionTextActive: {
     color: '#CE0E2D',
     fontWeight: 'bold',
+  },
+  tipoFiltroRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  tipoFiltroBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#EDEDED',
+  },
+  tipoFiltroBtnActive: {
+    backgroundColor: '#CE0E2D',
+  },
+  tipoFiltroText: {
+    color: '#5C5C60',
+    fontWeight: 'bold',
+  },
+  tipoFiltroTextActive: {
+    color: '#fff',
   },
 });
 

@@ -8,6 +8,8 @@ import ProjectCard from '../../components/specialCards/ProjectCard';
 import Filter from '../../components/common/Filter';
 import RefreshButton from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
+import { supabase } from '../../lib/supabase';
 import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects';
 import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
 import { Project } from '../../types/project';
@@ -64,7 +66,9 @@ type TipoFiltro = typeof tipoOpciones[number];
 
 const HomePageResponsable = () => {
   const navigation = useNavigation();
-  const { userProfile } = useAuthContext();
+  const { authUser, userProfile } = useAuthContext();
+  const { sendLocalNotification } = useNotifications();
+
   const [activeTab, setActiveTab] = useState<'home' | 'Entrada' | 'Salida' | 'Abiertas'>('home');
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
@@ -116,6 +120,15 @@ const HomePageResponsable = () => {
     return adapted;
   }, [proyectosCompatibles]);
 
+  const { data, error: updateError } = await supabase
+        .from('project')
+        .update({
+          projectState: 2,
+          responsible_id: responsableId,
+        })
+        .eq('id', projectId)
+        .select()
+        .single();
   // Aceptados -> Entrada
   const proyectosAceptadosEntrada: UIProject[] = useMemo(() => {
     const adapted = (proyectosAceptados || [])
@@ -126,6 +139,25 @@ const HomePageResponsable = () => {
 
         console.log('[UI] Aceptados Entrada map:', { id: p.id, weight: p.weight, carga });
 
+      // Enviar notificación
+      await sendLocalNotification(
+        'Proyecto aceptado',
+        'Has aceptado un nuevo proyecto exitosamente'
+      );
+
+      Alert.alert(
+        'Éxito',
+        'Has aceptado el proyecto correctamente',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              refetch();
+              setSelectedView('Entrada');
+            }
+          }
+        ]
+      );
         return {
           id: String(p.id),
           fecha,
@@ -166,6 +198,28 @@ const HomePageResponsable = () => {
     return adapted;
   }, [proyectosAceptados]);
 
+      // Enviar notificación
+      const stateMessages: Record<number, string> = {
+        2: 'El proyecto está en proceso de empaquetado',
+        3: 'El transporte ha llegado',
+        4: 'El proyecto está en camino',
+        5: 'El proyecto ha sido entregado',
+        6: 'El proyecto ha sido completado'
+      };
+      
+      if (stateMessages[newState]) {
+        await sendLocalNotification(
+          'Estado actualizado',
+          stateMessages[newState]
+        );
+      }
+
+      Alert.alert('Éxito', 'Estado del proyecto actualizado');
+      refetch();
+    } catch (err: any) {
+      console.error('Error al actualizar estado:', err);
+      Alert.alert('Error', 'No se pudo actualizar el estado del proyecto');
+    }
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
     if (tab === 'home') setSelectedView('Abiertas');
@@ -199,14 +253,24 @@ const HomePageResponsable = () => {
   // Filtrar y ordenar proyectos (a partir de proyectosAdaptados)
   let proyectosFiltrados = proyectosCompatiblesAdaptados;
   if (selectedView !== 'Abiertas') {
-    proyectosFiltrados = selectedView === 'Entrada' ? proyectosAceptadosEntrada : proyectosAceptadosSalida;
-    proyectosFiltrados = [...proyectosFiltrados].sort((a, b) => {
-      const dateA = parseFecha(a.fecha);
-      const dateB = parseFecha(b.fecha);
-      if (filterOrder === 'Ascendente') return dateA.getTime() - dateB.getTime();
-      if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
-      return 0;
-    });
+    proyectosFiltrados = [...projects]
+      .filter(p => p.projectState !== 6)
+      .sort((a, b) => {
+        const dateA = new Date(a.expirationDate || a.created_at);
+        const dateB = new Date(b.expirationDate || b.created_at);
+        if (filterOrder === 'Ascendente') return dateA.getTime() - dateB.getTime();
+        if (filterOrder === 'Descendente') return dateB.getTime() - dateA.getTime();
+        return 0;
+      });
+  }
+
+  if (!responsableId) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>No se encontró usuario autenticado</Text>
+      </View>
+    );
+
   }
 
   return (
@@ -223,39 +287,19 @@ const HomePageResponsable = () => {
           ? 'Solicitudes Abiertas'
           : `Proyectos de ${selectedView}`
       }
-      sectionTitleAction={
-        selectedView === 'Abiertas' ? (
-          <RefreshButton onRefresh={refetch} color="#CE0E2D" size={24} />
-        ) : undefined
-      }
+      onRefreshSection={refetch} // <-- Aquí pasas la función de refresco
+
     >
       {selectedView === 'Abiertas' && (
         <View style={styles.topRow}>
           <View style={styles.filterContainer}>
             <Filter
               label="Ordenar por:"
-              active={filterOrder}
-              onChange={setFilterOrder}
+              activeOrder={filterOrder}
+              onOrderChange={setFilterOrder}
+              tipoActive={tipoFiltro}
+              onTipoChange={setTipoFiltro}
             />
-            <View style={styles.tipoFiltroRow}>
-              {tipoOpciones.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[
-                    styles.tipoFiltroBtn,
-                    tipoFiltro === opt && styles.tipoFiltroBtnActive,
-                  ]}
-                  onPress={() => setTipoFiltro(opt)}
-                >
-                  <Text style={[
-                    styles.tipoFiltroText,
-                    tipoFiltro === opt && styles.tipoFiltroTextActive,
-                  ]}>
-                    {opt}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
           <View style={styles.vehicleButtonContainer}>
             <TouchableOpacity
@@ -268,7 +312,6 @@ const HomePageResponsable = () => {
         </View>
       )}
 
-      {/* Mostrar SolicitudCard en Abiertas, ProjectCard en proyectos */}
       {selectedView === 'Abiertas' ? (
         <FlatList
           data={solicitudesFiltradas}
@@ -320,21 +363,23 @@ const HomePageResponsable = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ProjectCard
-              type={item.tipo.toLowerCase() === 'entrada' ? 'entrada' : 'salida'}
-              date={item.fecha}
-              donors={item.donadores}
-              vehicleType={item.carga}
-              address={item.direccion}
-              donorName={item.donador || ''}
-              products={typeof item.productos === 'string' ? item.productos.split(',').map(p => p.trim()) : item.productos}
-              status={
-                item.status === 2 ? 'confirmacion' :
-                item.status === 3 ? 'en_recoleccion' :
-                item.status === 4 ? 'recolectado' :
-                'finalizado'
-              }
-              tokens={item.tokens.map(Number)}
-              onStart={() => console.log(`Iniciar proyecto ${item.id}`)}
+              project={item}
+              onStart={() => handleProjectStateChange(item.id, 3)}
+              onCollected={() => handleProjectStateChange(item.id, 4)}
+              onFinalize={() => handleProjectStateChange(item.id, 5)}
+              onComplete={() => {
+                Alert.alert(
+                  'Confirmar',
+                  '¿Deseas terminar este proyecto?',
+                  [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                      text: 'Confirmar',
+                      onPress: () => handleProjectStateChange(item.id, 6)
+                    }
+                  ]
+                );
+              }}
             />
           )}
           contentContainerStyle={{ paddingBottom: 120 }}
@@ -372,27 +417,6 @@ const styles = StyleSheet.create({
     minWidth: 48,
     marginRight: 0,
     elevation: 6,
-  },
-  tipoFiltroRow: {
-    flexDirection: 'row',
-    marginTop: 8,
-    gap: 8,
-  },
-  tipoFiltroBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: '#EDEDED',
-  },
-  tipoFiltroBtnActive: {
-    backgroundColor: '#CE0E2D',
-  },
-  tipoFiltroText: {
-    color: '#5C5C60',
-    fontWeight: 'bold',
-  },
-  tipoFiltroTextActive: {
-    color: '#fff',
   },
   loadingContainer: {
     flex: 1,
