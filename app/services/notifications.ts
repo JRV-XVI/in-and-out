@@ -35,6 +35,43 @@ export async function createNotification(
 }
 
 /**
+ * Enviar notificación a un usuario específico.
+ * @param targetUserId - ID del usuario destinatario
+ * @param title - Título de la notificación
+ * @param body - Cuerpo de la notificación
+ * @returns La notificación creada o null si hay un error
+ */
+export async function sendNotificationToUser(
+  targetUserId: number,
+  title: string,
+  body: string
+): Promise<Notification | null> {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([
+        {
+          title,
+          body,
+          user_id: targetUserId,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error al enviar notificación a usuario:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Error inesperado al enviar notificación:', err);
+    return null;
+  }
+}
+
+/**
  * Obtener todas las notificaciones de un usuario ordenadas por fecha de creación.
  * @param userId - ID del usuario (BIGINT)
  * @returns Array de notificaciones del usuario
