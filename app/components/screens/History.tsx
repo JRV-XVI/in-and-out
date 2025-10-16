@@ -43,7 +43,8 @@ const History = () => {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
 
-  const responsableId = String(userProfile?.id || authUser?.id || '');
+  const userId = String(userProfile?.id || authUser?.id || '');
+  const userType = userProfile?.userType;
 
   const showAlert = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setAlertMessage(message);
@@ -54,25 +55,45 @@ const History = () => {
   // Cargar proyectos completados
   useEffect(() => {
     loadCompletedProjects();
-  }, [responsableId]);
+  }, [userId, userType]);
 
   const loadCompletedProjects = async () => {
-    if (!responsableId) return;
+    if (!userId) {
+      console.log('❌ No hay userId disponible');
+      return;
+    }
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      console.log('🔍 Buscando proyectos completados para userId:', userId, 'userType:', userType);
+
+      let query = supabase
         .from('project')
         .select('*')
-        .eq('responsible_id', responsableId)
-        .eq('projectState', 6)
-        .order('created_at', { ascending: false });
+        .eq('projectState', 6);
+
+      // Determinar qué campo usar según el tipo de usuario
+      // userType 1 = Admin, 2 = Donador, 3 = Responsable (ajustar según tu sistema)
+      if (userType === 1) {
+        // Si es DONADOR, buscar por creator_id
+        console.log('👤 Usuario tipo DONADOR - Buscando por creator_id');
+        query = query.eq('creator_id', userId);
+      } else {
+        // Si es RESPONSABLE - 2 o ADMIN - 3, buscar por responsible_id
+        console.log('🚛 Usuario tipo RESPONSABLE - Buscando por responsible_id');
+        query = query.eq('responsible_id', userId);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
+      console.log('✅ Proyectos completados encontrados:', data?.length || 0);
       setProjects(data || []);
     } catch (err: any) {
-      console.error('Error al cargar proyectos completados:', err);
+      console.error('❌ Error al cargar proyectos completados:', err);
       showAlert('Error al cargar el historial', 'error');
     } finally {
       setLoading(false);
