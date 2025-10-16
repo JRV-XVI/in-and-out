@@ -9,6 +9,7 @@ interface DonationCardProps {
 }
 
 const statusConfig = {
+  0: { label: 'Cancelado', color: '#CE0E2D', icon: 'close-circle-outline' },
   1: { label: 'Pendiente por confirmar', color: '#888', icon: 'time-outline' },
   2: { label: 'Confirmado', color: '#3B82F6', icon: 'checkmark-circle-outline' },
   3: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
