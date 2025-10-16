@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
-import Button from '../common/Button';
 
 interface ProjectCardProps {
   type: 'entrada' | 'salida';
@@ -15,13 +14,16 @@ interface ProjectCardProps {
   status: 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado';
   tokens: number[];
   onStart?: () => void;
+  onCollected?: () => void;
+  onFinalize?: () => void;
+  onComplete?: () => void;
 }
 
-const statusLabels = {
-  confirmacion: 'Confirmación',
-  en_recoleccion: 'En recolección',
-  recolectado: 'Recolectado',
-  finalizado: 'Finalizado',
+const statusConfig = {
+  confirmacion: { label: 'Confirmación', color: '#888', icon: 'time-outline' },
+  en_recoleccion: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
+  recolectado: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
+  finalizado: { label: 'Finalizado', color: '#059669', icon: 'checkmark-circle' },
 };
 
 const statusOrder = ['confirmacion', 'en_recoleccion', 'recolectado', 'finalizado'];
@@ -37,122 +39,253 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   status,
   tokens,
   onStart,
+  onCollected,
+  onFinalize,
+  onComplete,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [tokenInput, setTokenInput] = useState(""); // Estado para el input de token
+  const [tokenInput, setTokenInput] = useState('');
   const isEntrada = type === 'entrada';
+  const currentStatus = statusConfig[status];
   const currentStatusIndex = statusOrder.indexOf(status);
 
-  const iconName = isEntrada ? 'arrow-down-circle' : 'arrow-up-circle';
-  const iconColor = isEntrada ? '#CE0E2D' : '#5C5C60';
-  const activeColor = isEntrada ? '#CE0E2D' : '#5C5C60';
+  // Función para obtener el botón según el estado
+  const renderActionButton = () => {
+    switch (status) {
+      case 'confirmacion':
+        return (
+          <TouchableOpacity
+            style={[styles.startBtn, { backgroundColor: '#CE0E2D' }]}
+            onPress={onStart}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="car-outline" size={20} color="#fff" style={styles.btnIcon} />
+            <Text style={styles.startBtnText}>Iniciar Viaje</Text>
+          </TouchableOpacity>
+        );
+      
+      case 'en_recoleccion':
+        return (
+          <TouchableOpacity
+            style={[styles.startBtn, { backgroundColor: '#10B981' }]}
+            onPress={onCollected}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="checkmark-done-circle-outline" size={20} color="#fff" style={styles.btnIcon} />
+            <Text style={styles.startBtnText}>Recolectado</Text>
+          </TouchableOpacity>
+        );
+      
+      case 'recolectado':
+        return (
+          <TouchableOpacity
+            style={[styles.startBtn, { backgroundColor: '#059669' }]}
+            onPress={onFinalize}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="flag-outline" size={20} color="#fff" style={styles.btnIcon} />
+            <Text style={styles.startBtnText}>Finalizar</Text>
+          </TouchableOpacity>
+        );
+      
+      case 'finalizado':
+        return (
+          <TouchableOpacity
+            style={[styles.startBtn, { backgroundColor: '#5C5C60' }]}
+            onPress={onComplete}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="checkmark-circle" size={20} color="#fff" style={styles.btnIcon} />
+            <Text style={styles.startBtnText}>Terminar Proyecto</Text>
+          </TouchableOpacity>
+        );
+      
+      default:
+        return null;
+    }
+  };
 
   return (
     <TouchableOpacity
-      style={[styles.card, expanded && styles.cardActive, expanded && { borderColor: activeColor }]}
+      style={[
+        styles.card,
+        expanded && styles.cardExpanded,
+      ]}
       activeOpacity={0.95}
-      onPress={() => setExpanded((v) => !v)}
+      onPress={() => setExpanded(!expanded)}
     >
-      {/* Header Section */}
+      {/* Header */}
       <View style={styles.headerContainer}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>
+        <View style={styles.iconCircle}>
+          <Ionicons
+            name={isEntrada ? 'arrow-down-circle' : 'arrow-up-circle'}
+            size={36}
+            color={isEntrada ? '#CE0E2D' : '#5C5C60'}
+          />
+        </View>
+        <View style={styles.mainInfo}>
+          <Text style={styles.title} numberOfLines={2}>
             Proyecto {isEntrada ? 'Entrada' : 'Salida'}
           </Text>
-          <View style={[styles.dateBadge, { backgroundColor: activeColor }]}>
-            <Text style={styles.dateText}>{date}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.loadTypeBadge}>
+              <Ionicons name="cube-outline" size={14} color="#5C5C60" />
+              <Text style={styles.loadTypeText}>{vehicleType}</Text>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: currentStatus.color }]}>
+            <Ionicons
+              name={currentStatus.icon as any}
+              size={14}
+              color="#fff"
+            />
+            <Text style={styles.statusText}>{currentStatus.label}</Text>
           </View>
         </View>
-
-        <View style={styles.headerRow}>
-          <View style={[styles.iconCircle, { borderColor: activeColor }]}>
-            <Ionicons 
-              name={iconName} 
-              size={42} 
-              color={expanded ? activeColor : '#888'} 
-            />
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLine}>
-              <Text style={styles.label}>Destinos</Text>
-              <Text style={styles.separator}>————</Text>
-              <Text style={styles.value}>{donors} donadores</Text>
-            </View>
-            <View style={styles.infoLine}>
-              <Text style={styles.label}>Vehiculo</Text>
-              <Text style={styles.separator}>————</Text>
-              <Text style={styles.value}>{vehicleType}</Text>
-            </View>
-          </View>
+        <View style={styles.expandIcon}>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={24}
+            color="#CE0E2D"
+          />
         </View>
       </View>
 
       {/* Expanded Content */}
       {expanded && (
-        <View style={styles.expandedBox}>
-          {/* Status Progress Bar */}
-          <View style={styles.statusContainer}>
-            <Text style={styles.sectionTitle}>Estatus de Viaje</Text>
-            <View style={styles.statusRow}>
-              {statusOrder.map((statusKey, idx) => (
-                <View key={statusKey} style={styles.statusItem}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      idx <= currentStatusIndex && [
-                        styles.statusDotActive,
-                        { backgroundColor: activeColor },
-                      ],
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.statusLabel,
-                      idx === currentStatusIndex && [
-                        styles.statusLabelActive,
-                        { color: activeColor },
-                      ],
-                    ]}
-                  >
-                    {statusLabels[statusKey as keyof typeof statusLabels]}
-                  </Text>
+        <View style={styles.expandedContent}>
+          {/* Progress Bar */}
+          <View style={styles.progressSection}>
+            <Text style={styles.sectionTitle}>Progreso de Viaje</Text>
+            <View style={styles.progressBar}>
+              {statusOrder.map((key, idx) => {
+                const stepConfig = statusConfig[key as keyof typeof statusConfig];
+                const isActive = idx <= currentStatusIndex;
+                const isCurrent = idx === currentStatusIndex;
+                return (
+                  <View key={key} style={styles.progressStep}>
+                    <View
+                      style={[
+                        styles.progressDot,
+                        isActive && { backgroundColor: stepConfig.color },
+                        isCurrent && styles.progressDotActive,
+                      ]}
+                    >
+                      {isActive && (
+                        <Ionicons
+                          name={stepConfig.icon as any}
+                          size={12}
+                          color="#fff"
+                        />
+                      )}
+                    </View>
+                    {idx < statusOrder.length - 1 && (
+                      <View
+                        style={[
+                          styles.progressLine,
+                          isActive && idx < currentStatusIndex && { backgroundColor: stepConfig.color },
+                        ]}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+            <View style={styles.progressLabels}>
+              {statusOrder.map((key, idx) => {
+                const stepConfig = statusConfig[key as keyof typeof statusConfig];
+                const isCurrent = idx === currentStatusIndex;
+                return (
+                  <View key={key} style={styles.progressLabelContainer}>
+                    <Text
+                      style={[
+                        styles.progressLabel,
+                        isCurrent && { color: stepConfig.color, fontWeight: 'bold' },
+                      ]}
+                    >
+                      {stepConfig.label}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Details */}
+          <View style={styles.detailsSection}>
+            <View style={styles.detailRow}>
+              <Ionicons name="location-outline" size={20} color="#CE0E2D" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Dirección</Text>
+                <Text style={styles.detailText}>{address}</Text>
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="person-outline" size={20} color="#CE0E2D" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Donador</Text>
+                <Text style={styles.detailText}>{donorName}</Text>
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="basket-outline" size={20} color="#CE0E2D" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Productos</Text>
+                <Text style={styles.detailText}>
+                  {products.length > 0 ? products.join(', ') : 'No especificados'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="car-sport-outline" size={20} color="#CE0E2D" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Vehículo</Text>
+                <Text style={styles.detailText}>{vehicleType}</Text>
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="cube-outline" size={20} color="#CE0E2D" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Donadores</Text>
+                <Text style={styles.detailText}>{donors}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Token Section - Solo visible en "en_recoleccion" */}
+          {status === 'en_recoleccion' && (
+            <View style={styles.tokenSection}>
+              <View style={styles.tokenHeader}>
+                <Ionicons name="key-outline" size={20} color="#CE0E2D" />
+                <Text style={styles.tokenTitle}>Token de identificación</Text>
+              </View>
+              <View style={styles.tokenInputContainer}>
+                <Token value={tokenInput} onChange={setTokenInput} />
+              </View>
+              {tokens && tokens.length > 0 && (
+                <View style={styles.tokenList}>
+                  <Text style={styles.tokenListLabel}>Tokens registrados:</Text>
+                  <View style={styles.tokenItemsRow}>
+                    {tokens.map((t, idx) => (
+                      <View key={idx} style={styles.tokenChip}>
+                        <Text style={styles.tokenText}>#{t}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              ))}
+              )}
             </View>
-          </View>
+          )}
 
-          {/* Details Section */}
-          <View style={styles.details}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Dirección:</Text>
-              <Text style={styles.detailText}>{address}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Donador:</Text>
-              <Text style={styles.detailText}>{donorName}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Productos:</Text>
-              <Text style={styles.detailText}>{products.join(', ')}</Text>
-            </View>
-          </View>
+          {/* Botón dinámico según estado */}
+          {renderActionButton()}
 
-          {/* Token Section */}
-          <View style={styles.tokenSection}>
-            <Text style={styles.sectionTitle}>Token</Text>
-            <View style={styles.tokenRow}>
-              <Token value={tokenInput} onChange={setTokenInput} />
-            </View>
+          {/* Fecha al final como DonationCard */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Creado el {date}
+            </Text>
           </View>
-
-          {/* Start Button */}
-          <TouchableOpacity
-            style={[styles.startBtn, { backgroundColor: activeColor }]}
-            onPress={onStart}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.startBtnText}>Iniciar</Text>
-          </TouchableOpacity>
         </View>
       )}
     </TouchableOpacity>
@@ -163,7 +296,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    marginVertical: 12,
+    marginVertical: 10,
     marginHorizontal: 16,
     borderWidth: 2,
     borderColor: '#E5E5E5',
@@ -174,153 +307,250 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     overflow: 'hidden',
   },
-  cardActive: {
+  cardExpanded: {
+    borderColor: '#CE0E2D',
     elevation: 8,
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
   headerContainer: {
+    flexDirection: 'row',
     padding: 16,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#5C5C60',
-  },
-  dateBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  dateText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  headerRow: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    marginRight: 16,
+    borderColor: '#E5E5E5',
+    marginRight: 12,
   },
-  infoRow: {
+  mainInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
-  infoLine: {
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
+  },
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  label: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '600',
+  loadTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  separator: {
-    color: '#D0D0D0',
-    fontSize: 10,
-    marginHorizontal: 6,
-  },
-  value: {
+  loadTypeText: {
+    fontSize: 12,
     color: '#5C5C60',
-    fontSize: 14,
+    marginLeft: 4,
     fontWeight: '500',
   },
-  expandedBox: {
-    backgroundColor: '#F8F8F8',
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  expandIcon: {
+    marginLeft: 8,
+  },
+  expandedContent: {
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
-    padding: 16,
+    backgroundColor: '#F9F9F9',
   },
-  statusContainer: {
-    marginBottom: 16,
+  progressSection: {
+    padding: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#5C5C60',
-    marginBottom: 8,
+    color: '#333',
+    marginBottom: 12,
   },
-  statusRow: {
+  progressBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 4,
-  },
-  statusItem: {
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    marginBottom: 8,
+    alignSelf: 'center',
   },
-  statusDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#D0D0D0',
-    marginBottom: 4,
-  },
-  statusDotActive: {
-    elevation: 2,
-  },
-  statusLabel: {
-    fontSize: 11,
-    color: '#888',
-    textAlign: 'center',
-  },
-  statusLabelActive: {
-    fontWeight: 'bold',
-  },
-  details: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  detailRow: {
+  progressStep: {
     flexDirection: 'row',
-    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 40,
   },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#5C5C60',
-    marginRight: 6,
+  progressDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#D0D0D0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignSelf: 'center',
   },
-  detailText: {
-    fontSize: 14,
-    color: '#5C5C60',
-    flex: 1,
+  progressDotActive: {
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
-  tokenSection: {
-    marginBottom: 12,
+  progressLine: {
+    height: 3,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 4,
+    minWidth: 24,
+    alignSelf: 'center',
   },
-  tokenRow: {
+  progressLabels: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 8,
+    width: '100%',
+  },
+  progressLabelContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  progressLabel: {
+    fontSize: 10,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  detailsSection: {
+    padding: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  detailContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  tokenSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  tokenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tokenTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 8,
+  },
+  tokenInputContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tokenList: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  tokenListLabel: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  tokenItemsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tokenChip: {
+    backgroundColor: '#FEE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#CE0E2D',
+  },
+  tokenText: {
+    fontWeight: 'bold',
+    color: '#CE0E2D',
+    fontSize: 14,
   },
   startBtn: {
     borderRadius: 16,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
     elevation: 2,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  btnIcon: {
+    marginRight: 8,
   },
   startBtnText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  footer: {
+    padding: 16,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
