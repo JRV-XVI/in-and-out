@@ -286,7 +286,7 @@ function weightToType(weight?: number | null): 1 | 2 | 3 | null {
     if (typeof weight !== 'number') return null;
     if (weight > 10) return 3;         // large
     if (weight > 5 && weight <= 10) return 2; // medium
-    if (weight > 0 && weight < 5) return 1;   // small
+    if (weight > 0 && weight <= 5) return 1;   // small
     return null; // p.ej. weight === 5 o <= 0
 }
 

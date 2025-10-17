@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
+import { deleteUserEverywhere } from '../../services/users';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import GeneralTemplate from '../../components/screens/GeneralTemplate';
 import { useAuthContext } from '../../context/AuthContext';
-import { deleteUserEverywhere } from '../../services/users';
 
 const Settings = ({ navigation }: any) => {
   const { authUser, userProfile, signOut } = useAuthContext?.() || {};
@@ -24,13 +24,20 @@ const Settings = ({ navigation }: any) => {
                 Alert.alert('Error', 'No se encontró el usuario autenticado.');
                 return;
               }
-              const ok = await deleteUserEverywhere(Number(userProfile.id), String(authUser.id));
-              if (!ok) {
-                Alert.alert('Error', 'No se pudo eliminar la cuenta. Intenta nuevamente.');
+              const res = await deleteUserEverywhere(Number(userProfile.id), String(authUser.id));
+              if (!res.ok) {
+                if (res.reason === 'active_projects') {
+                  const extra = typeof res.count === 'number' ? ` (${res.count} activos)` : '';
+                  Alert.alert('No se puede eliminar', `Tienes proyectos activos como responsable${extra}. Finalízalos (estado 6) e inténtalo de nuevo.`);
+                } else {
+                  Alert.alert('Error', res.message || 'No se pudo eliminar la cuenta.');
+                }
+                // Importante: NO cerrar sesión ni navegar; mantener interfaz
                 return;
               }
+
+              // Éxito: cerrar sesión y resetear a LaunchScreen
               try { await signOut?.(); } catch {}
-              // Resetear navegación a LaunchScreen (existe en tu Stack)
               navigation.dispatch(
                 CommonActions.reset({
                   index: 0,

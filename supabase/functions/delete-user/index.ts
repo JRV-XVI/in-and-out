@@ -2,6 +2,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const FINISHED_STATE = 6;
+
 serve(async (req: Request) => {
   try {
     if (req.method !== "POST") {
@@ -13,7 +15,6 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Missing ids" }), { status: 400 });
     }
 
-    // Cambia a nombres de secretos permitidos
     const SUPABASE_URL = Deno.env.get("PROJECT_URL")!;
     const SERVICE_ROLE = Deno.env.get("SERVICE_ROLE_KEY")!;
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
@@ -28,6 +29,29 @@ serve(async (req: Request) => {
         .limit(1);
       if (findErr) return new Response(JSON.stringify({ error: findErr.message }), { status: 400 });
       pubId = rows && rows.length ? (rows[0].id as number) : undefined;
+    }
+
+    // Validación: no se puede borrar si tiene proyectos activos como responsable (projectState != 6 o null)
+    if (pubId) {
+      const { count: activeCount, error: activeErr } = await sb
+        .from("project")
+        .select("id", { count: "exact", head: true })
+        .eq("responsible_id", pubId)
+        .or('projectState.is.null,projectState.neq.' + FINISHED_STATE);
+      if (activeErr) {
+        return new Response(JSON.stringify({ error: activeErr.message }), { status: 400 });
+      }
+      if ((activeCount ?? 0) > 0) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            reason: "active_projects",
+            message: "No se puede eliminar: el usuario tiene proyectos activos como responsable.",
+            count: activeCount,
+          }),
+          { status: 409, headers: { "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // 1) Si hay pubId, obtener placas del usuario
@@ -52,16 +76,25 @@ serve(async (req: Request) => {
 
     // 3) Nullificar project.responsible_id y project.creator_id
     if (pubId) {
-      const { error: pRespErr } = await sb.from("project").update({ responsible_id: null }).eq("responsible_id", pubId);
+      const { error: pRespErr } = await sb
+        .from("project")
+        .update({ responsible_id: null })
+        .eq("responsible_id", pubId);
       if (pRespErr) return new Response(JSON.stringify({ error: pRespErr.message }), { status: 400 });
 
-      const { error: pCreErr } = await sb.from("project").update({ creator_id: null }).eq("creator_id", pubId);
+      const { error: pCreErr } = await sb
+        .from("project")
+        .update({ creator_id: null })
+        .eq("creator_id", pubId);
       if (pCreErr) return new Response(JSON.stringify({ error: pCreErr.message }), { status: 400 });
     }
 
     // 4) Borrar vehículos del usuario
     if (pubId) {
-      const { error: delVehErr } = await sb.from("vehicle").delete().eq("userResponsible_id", pubId);
+      const { error: delVehErr } = await sb
+        .from("vehicle")
+        .delete()
+        .eq("userResponsible_id", pubId);
       if (delVehErr) return new Response(JSON.stringify({ error: delVehErr.message }), { status: 400 });
     }
 
@@ -73,7 +106,9 @@ serve(async (req: Request) => {
         [
           pubId ? `id.eq.${pubId}` : "",
           authUserId ? `auth_user_id.eq.${authUserId}` : "",
-        ].filter(Boolean).join(",")
+        ]
+          .filter(Boolean)
+          .join(",")
       );
     if (pubErr) return new Response(JSON.stringify({ error: pubErr.message }), { status: 400 });
 
@@ -83,7 +118,10 @@ serve(async (req: Request) => {
       if (authErr) return new Response(JSON.stringify({ error: authErr.message }), { status: 400 });
     }
 
-    return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" }, status: 200 });
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e?.message || "Internal error" }), { status: 500 });
   }
