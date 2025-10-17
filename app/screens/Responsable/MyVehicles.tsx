@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   FlatList,
+  ScrollView,
   StyleSheet,
   View,
   TouchableOpacity,
@@ -24,8 +25,9 @@ import {
 import { Vehicle } from '../../types/vehicle';
 import { useUser } from '../../context/UserContext'; // <-- importamos el contexto
 
-const tipos = ['Carga chica', 'Carga mediana', 'Carga grande'] as const;
-type Tipo = typeof tipos[number];
+const cargaPesos = ['Carga chica', 'Carga mediana', 'Carga grande'] as const;
+const cargaTipos = ['Normal', 'Delicada', 'Refrigerada'] as const;
+type Tipo = typeof cargaPesos[number];
 
 const getTipoIcon = (tipo: string) => {
   if (tipo === 'Carga chica') return <MaterialCommunityIcons name="truck-outline" size={22} color="#CE0E2D" />;
@@ -55,8 +57,11 @@ const MyVehicles = ({ navigation }: any) => {
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [tipo, setTipo] = useState<Tipo>('Carga chica');
+  const [peso, setPeso] = useState<'Carga chica' | 'Carga mediana' | 'Carga grande'>('Carga chica');
+  const [pesoDropdown, setPesoDropdown] = useState(false);
+  const [tipo, setTipo] = useState<'Normal' | 'Delicada' | 'Refrigerada'>('Normal');
   const [tipoDropdown, setTipoDropdown] = useState(false);
+
   const [plate, setPlate] = useState('');
   const [plateError, setPlateError] = useState<string | null>(null);
   const [photo, setPhoto] = useState(''); // campo de texto plano
@@ -111,16 +116,17 @@ const MyVehicles = ({ navigation }: any) => {
     setSaving(true);
 
     try {
-      const mappedType = mapTipoToLoadType(tipo);
+      const mappedPeso = mapTipoToLoadType(peso);
+      const mappedTipo = cargaTipos.indexOf(tipo) + 1; // 1 = Normal, 2 = Delicada, 3 = Refrigerada
+
       const newVehicle: Omit<Vehicle, 'plate'> & { plate: string } = {
         plate: normalizedPlate,
-        // Corregimos: el tipo seleccionado representa el tipo de peso.
-        // Asignamos weightType correctamente y mantenemos loadType para no romper la UI actual.
-        weightType: mappedType,
-        loadType: mappedType,
+        weightType: mappedPeso,
+        loadType: mappedTipo,
         isAvailable: false,
         photo: photo || null,
       };
+
 
       console.log('📝 [CREATE] Vehículo a crear:', JSON.stringify(newVehicle));
       const created = await createVehicle(newVehicle as Vehicle, user.id); // <-- pasamos userId
@@ -184,7 +190,7 @@ const MyVehicles = ({ navigation }: any) => {
 
   const filteredVehicles = vehiculos.filter(
     v =>
-      (v.loadType ? tipos[v.loadType - 1] ?? '' : '').toLowerCase().includes(query.toLowerCase()) ||
+      (v.loadType ? cargaPesos[v.loadType - 1] ?? '' : '').toLowerCase().includes(query.toLowerCase()) ||
       (v.plate ?? '').toLowerCase().includes(query.toLowerCase())
   );
 
@@ -201,7 +207,7 @@ const MyVehicles = ({ navigation }: any) => {
       headerTitle="Mis Vehículos"
       primaryButtonText="Registrados"
       secondaryButtonText="Registrar"
-      sectionTitle={selectedView === 'list' ? '      Lista de Vehículos' : 'Nuevo Vehículo'}
+      sectionTitle={selectedView === 'list' ? '      Lista de Vehículos' : '      Nuevo Vehículo'}
     >
       <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
         <Ionicons name="chevron-back" style={styles.backIcon} size={28} />
@@ -243,32 +249,98 @@ const MyVehicles = ({ navigation }: any) => {
           )}
         </>
       ) : (
-        <View style={styles.form}>
+        <ScrollView
+          style={styles.form}
+          contentContainerStyle={{
+            paddingBottom: 60,
+            justifyContent: 'center',
+          }}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.tipoRow}>
-            <Text style={styles.cascadaLabel}>Tipo de vehículo</Text>
-            <TouchableOpacity style={styles.tipoBtn} onPress={() => setTipoDropdown(v => !v)}>
-              {getTipoIcon(tipo)}
-              <Text style={styles.tipoBtnText}>{tipo}</Text>
-              <Ionicons name={tipoDropdown ? 'chevron-up' : 'chevron-down'} size={20} color="#CE0E2D" style={{ marginLeft: 4 }} />
+            {/* ----- CARGA MÁXIMA ----- */}
+            <Text style={styles.cascadaLabel}>Carga máxima</Text>
+            <TouchableOpacity style={styles.tipoBtn} onPress={() => setPesoDropdown(v => !v)}>
+              {getTipoIcon(peso)}
+              <Text style={styles.tipoBtnText}>{peso}</Text>
+              <Ionicons
+                name={pesoDropdown ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#CE0E2D"
+                style={{ marginLeft: 4 }}
+              />
             </TouchableOpacity>
-            {tipoDropdown && (
+
+            {pesoDropdown && (
               <View style={styles.dropdown}>
-                {tipos.map(opt => (
+                {cargaPesos.map(opt => (
                   <TouchableOpacity
                     key={opt}
-                    style={[styles.optionBtn, tipo === opt && styles.optionActive]}
+                    style={[styles.optionBtn, peso === opt && styles.optionActive]}
                     onPress={() => {
-                      setTipo(opt as Tipo);
-                      setTipoDropdown(false);
+                      setPeso(opt);
+                      setPesoDropdown(false);
                     }}
                   >
-                    <Text style={[styles.optionText, tipo === opt && styles.optionTextActive]}>{opt}</Text>
+                    <Text style={[styles.optionText, peso === opt && styles.optionTextActive]}>{opt}</Text>
                     {getTipoIcon(opt)}
                   </TouchableOpacity>
                 ))}
               </View>
             )}
+
+            {/* ----- TIPO DE CARGA ----- */}
+            <Text style={[styles.cascadaLabel, { marginTop: 16 }]}>Tipo de carga</Text>
+            <TouchableOpacity style={styles.tipoBtn} onPress={() => setTipoDropdown(v => !v)}>
+              <MaterialCommunityIcons
+                name={
+                  tipo === 'Normal'
+                    ? 'package-variant'
+                    : tipo === 'Delicada'
+                    ? 'glass-fragile'
+                    : 'snowflake'
+                }
+                size={22}
+                color="#CE0E2D"
+              />
+              <Text style={styles.tipoBtnText}>{tipo}</Text>
+              <Ionicons
+                name={tipoDropdown ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#CE0E2D"
+                style={{ marginLeft: 4 }}
+              />
+            </TouchableOpacity>
+
+            {tipoDropdown && (
+              <View style={styles.dropdown}>
+                {cargaTipos.map(opt => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[styles.optionBtn, tipo === opt && styles.optionActive]}
+                    onPress={() => {
+                      setTipo(opt);
+                      setTipoDropdown(false);
+                    }}
+                  >
+                    <Text style={[styles.optionText, tipo === opt && styles.optionTextActive]}>{opt}</Text>
+                    <MaterialCommunityIcons
+                      name={
+                        opt === 'Normal'
+                          ? 'package-variant'
+                          : opt === 'Delicada'
+                          ? 'glass-fragile'
+                          : 'snowflake'
+                      }
+                      size={22}
+                      color="#CE0E2D"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
+
 
           <Input
             label="Placa del vehículo"
@@ -303,7 +375,7 @@ const MyVehicles = ({ navigation }: any) => {
           />
 
           <Button title={saving ? 'Guardando...' : 'Registrar Vehículo'} onPress={handleRegistrar} />
-        </View>
+        </ScrollView>
       )}
     </HomePageTemplate>
   );
@@ -331,7 +403,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: { flex: 1, color: '#fff', fontSize: 16, paddingVertical: 0, paddingHorizontal: 0, backgroundColor: 'transparent' },
-  form: { flex: 1, justifyContent: 'center', padding: 16 },
+  form: { flex: 1, padding: 16 },
   cascadaLabel: { color: '#5C5C60', fontWeight: 'bold', marginBottom: 8, fontSize: 16 },
   tipoRow: { marginBottom: 16, position: 'relative' },
   tipoBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDEDED', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 4 },
