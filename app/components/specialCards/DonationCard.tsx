@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Project } from '../../types/project';
+import { getProjectToken } from '../../services/projects';
 
 interface DonationCardProps {
   project: Project;
@@ -26,11 +27,32 @@ const loadTypeLabels: Record<number, string> = {
 
 const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
   const [expanded, setExpanded] = useState(false);
+  const [projectToken, setProjectToken] = useState<string | null>(null);
+  const [loadingToken, setLoadingToken] = useState(false);
 
   const handlePress = () => {
     setExpanded(!expanded);
     onPress?.();
   };
+
+  // Cargar token cuando el proyecto está en estado 3 y se expande la card
+  useEffect(() => {
+    const fetchToken = async () => {
+      if (project.projectState === 3 && expanded && !projectToken) {
+        setLoadingToken(true);
+        try {
+          const token = await getProjectToken(project.id);
+          setProjectToken(token);
+        } catch (error) {
+          console.error('Error cargando token:', error);
+        } finally {
+          setLoadingToken(false);
+        }
+      }
+    };
+
+    fetchToken();
+  }, [project.projectState, project.id, expanded]);
 
   // Obtener configuración del estatus
   const currentStatus = statusConfig[project.projectState as keyof typeof statusConfig] || statusConfig[1];
@@ -211,7 +233,7 @@ const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
               <Ionicons name="car-sport-outline" size={20} color="#CE0E2D" />
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Vehículo asignado</Text>
-                <Text style={styles.detailText}>No seleccionado</Text>
+                <Text style={styles.detailText}>{project.vehicle_id || 'No especificado'}</Text>
               </View>
             </View>
 
@@ -232,17 +254,6 @@ const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
               </View>
             )}
 
-            {/* Token */}
-            {project.token && (
-              <View style={styles.detailRow}>
-                <Ionicons name="key-outline" size={20} color="#CE0E2D" />
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Token de identificación</Text>
-                  <Text style={[styles.detailText, styles.tokenText]}>#{project.token}</Text>
-                </View>
-              </View>
-            )}
-
             {/* Notas */}
             {project.notes && (
               <View style={styles.detailRow}>
@@ -254,6 +265,36 @@ const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
               </View>
             )}
           </View>
+
+          {/* Token Section - Solo visible en estado 3 (En camino) */}
+          {project.projectState === 3 && (
+            <View style={styles.tokenSection}>
+              <View style={styles.tokenHeader}>
+                <Ionicons name="key-outline" size={20} color="#CE0E2D" />
+                <Text style={styles.tokenTitle}>Da el siguiente token al conductor</Text>
+              </View>
+              {loadingToken ? (
+                <View style={styles.tokenDisplayContainer}>
+                  <Text style={styles.tokenLabel}>Cargando token...</Text>
+                </View>
+              ) : projectToken ? (
+                <View style={styles.tokenDisplayContainer}>
+                  <Text style={styles.tokenLabel}>Tu Token</Text>
+                  <View style={styles.tokenDisplay}>
+                    {String(projectToken).padStart(4, '0').split('').map((digit, idx) => (
+                      <View key={idx} style={styles.tokenDigit}>
+                        <Text style={styles.tokenDigitText}>{digit}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.tokenDisplayContainer}>
+                  <Text style={styles.tokenLabel}>Token no disponible</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Fecha de creación */}
           <View style={styles.footer}>
@@ -443,10 +484,54 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 20,
   },
-  tokenText: {
+  tokenSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  tokenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tokenTitle: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#CE0E2D',
-    fontSize: 16,
+    color: '#333',
+    marginLeft: 8,
+  },
+  tokenDisplayContainer: {
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  tokenLabel: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    color: '#5C5C60',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  tokenDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  tokenDigit: {
+    width: 54,
+    height: 54,
+    borderRadius: 12,
+    backgroundColor: '#5C5C60',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tokenDigitText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   footer: {
     padding: 16,

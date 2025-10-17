@@ -13,6 +13,7 @@ interface ProjectCardProps {
 }
 
 const statusConfig = {
+  cancelado: { label: 'Cancelado', color: '#CE0E2D', icon: 'close-circle-outline' },
   confirmacion: { label: 'Confirmación', color: '#888', icon: 'time-outline' },
   en_recoleccion: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
   recolectado: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
@@ -50,7 +51,8 @@ const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
 };
 
 // Helper to get status from projectState
-const getStatus = (projectState: number | null | undefined): 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' => {
+const getStatus = (projectState: number | null | undefined): 'cancelado' | 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' => {
+  if (projectState === 0) return 'cancelado';
   if (projectState === 1 || projectState === 2) return 'confirmacion';
   if (projectState === 3) return 'en_recoleccion';
   if (projectState === 4) return 'recolectado';
