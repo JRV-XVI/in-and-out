@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
 import { Project } from '../../types/project';
+import { compareAndConsumeProjectToken } from '../../services/projects'; // <-- agregar import
 
 interface ProjectCardProps {
   project: Project;
@@ -78,6 +79,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
+  const [verifying, setVerifying] = useState(false); // <-- estado de verificación
   
   // Extract values from project
   const type = getProjectType(project.projectType);
@@ -88,11 +90,35 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const donorName = project.title || 'Sin nombre';
   const products = getProducts(project.foodList);
   const status = getStatus(project.projectState);
-  const tokens = project.token ? [Number(project.token)] : [];
+  const tokens = project.token ? [String(project.token)] : [];
   
   const isEntrada = type === 'entrada';
   const currentStatus = statusConfig[status];
   const currentStatusIndex = statusOrder.indexOf(status);
+
+  // Verifica token y, si es correcto, consume y avanza a "Recolectado"
+  const handleVerifyAndCollected = async () => {
+    if (!tokenInput || tokenInput.trim().length === 0) {
+      Alert.alert('Token requerido', 'Ingresa el token para continuar.');
+      return;
+    }
+    try {
+      setVerifying(true);
+      const ok = await compareAndConsumeProjectToken(String(project.id), tokenInput.trim());
+      if (!ok) {
+        Alert.alert('Token inválido', 'El token no coincide. Verifícalo e intenta de nuevo.');
+        return;
+      }
+      Alert.alert('Éxito', 'Token verificado correctamente.');
+      setTokenInput('');
+      onCollected && onCollected();
+    } catch (e) {
+      console.error('[ProjectCard] verify token error:', e);
+      Alert.alert('Error', 'No fue posible verificar el token. Intenta nuevamente.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   // Función para obtener el botón según el estado
   const renderActionButton = () => {
@@ -108,19 +134,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.startBtnText}>Iniciar Viaje</Text>
           </TouchableOpacity>
         );
-      
       case 'en_recoleccion':
         return (
           <TouchableOpacity
             style={[styles.startBtn, { backgroundColor: '#10B981' }]}
-            onPress={onCollected}
+            onPress={handleVerifyAndCollected} // <-- validar y consumir token antes de avanzar
             activeOpacity={0.8}
+            disabled={verifying}
           >
             <Ionicons name="checkmark-done-circle-outline" size={20} color="#fff" style={styles.btnIcon} />
-            <Text style={styles.startBtnText}>Recolectado</Text>
+            <Text style={styles.startBtnText}>{verifying ? 'Verificando…' : 'Recolectado'}</Text>
           </TouchableOpacity>
         );
-      
       case 'recolectado':
         return (
           <TouchableOpacity
@@ -132,7 +157,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.startBtnText}>Finalizar</Text>
           </TouchableOpacity>
         );
-      
       case 'finalizado':
         return (
           <TouchableOpacity
@@ -144,7 +168,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.startBtnText}>Terminar Proyecto</Text>
           </TouchableOpacity>
         );
-      
       default:
         return null;
     }
