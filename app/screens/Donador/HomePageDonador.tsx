@@ -13,6 +13,7 @@ import { createProject, getProjectByDonador, getCountsDonationsComplete, getCoun
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { Project } from '../../types/project';
+import { sendNotificationToAllAdmins } from '../../services/notifications';
 
 interface Articulo {
   id: string;
@@ -302,10 +303,16 @@ const HomePageDonador = () => {
                 setAlertType('success');
                 setShowAlert(true);
 
-                // Enviar notificación
+                // Notificación local al donador
                 await sendLocalNotification(
                   'Donación registrada',
-                  `Tu donación "${titulo}" ha sido registrada exitosamente`
+                  `Tu donación "${titulo}" se registró correctamente. Queda a la espera de confirmación`
+                );
+
+                // Notificación a todos los administradores
+                await sendNotificationToAllAdmins(
+                  'Nueva donación pendiente',
+                  `${userProfile?.name || 'Un donador'} ha registrado una nueva donación: "${titulo}". Requiere confirmación`
                 );
 
                 // Limpiar formulario
@@ -352,7 +359,7 @@ const HomePageDonador = () => {
       onPrimaryAction={() => setSelectedView('misDonaciones')}
       onSecondaryAction={() => setSelectedView('registrarDonaciones')}
       primaryButtonText="Mis Donaciones"
-      secondaryButtonText="Registrar Donaciones"
+      secondaryButtonText="Registrar"
       sectionTitle={
         selectedView === 'estadisticas' ? 'Estadisticas Generales' 
         : selectedView === 'misDonaciones' ? 'Mis Donaciones'

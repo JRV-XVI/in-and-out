@@ -15,15 +15,25 @@ const Token = ({ value, onChange }: TokenProps) => {
   ];
 
   const handleChange = (text: string, idx: number) => {
+    // Permitir cualquier carácter, pero solo tomar el último carácter ingresado
+    const sanitizedText = text.slice(-1) || '';
+    
     let newValue = value.split('');
-    newValue[idx] = text.replace(/[^0-9a-zA-Z]/g, '').slice(-1) || '';
+    // Asegurar que el array tenga exactamente 4 posiciones
+    while (newValue.length < 4) {
+      newValue.push('');
+    }
+    
+    newValue[idx] = sanitizedText;
     const joined = newValue.join('').slice(0, 4);
     onChange(joined);
 
-    if (text && idx < 3) {
+    // Auto-focus al siguiente input si se ingresó un carácter
+    if (sanitizedText && idx < 3) {
       inputs[idx + 1].current?.focus();
     }
-    if (!text && idx > 0) {
+    // Volver al input anterior si se borró un carácter
+    if (!sanitizedText && idx > 0) {
       inputs[idx - 1].current?.focus();
     }
   };

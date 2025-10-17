@@ -10,24 +10,28 @@ const ProyectPageAdmin = () => {
 	const [projects, setProjects] = useState<Project[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
+	const [refreshKey, setRefreshKey] = useState<number>(0);
+
+	const loadProjects = async () => {
+		setLoading(true);
+		try {
+			const data = await getAllProjects();
+			setProjects(data || []);
+		} catch (err) {
+			console.error('Error loading projects for admin:', err);
+			setError(String(err));
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	useEffect(() => {
-		let mounted = true;
-		async function load() {
-			setLoading(true);
-			try {
-				const data = await getAllProjects();
-				if (mounted) setProjects(data || []);
-			} catch (err) {
-				console.error('Error loading projects for admin:', err);
-				if (mounted) setError(String(err));
-			} finally {
-				if (mounted) setLoading(false);
-			}
-		}
-		load();
-		return () => { mounted = false; };
-	}, []);
+		loadProjects();
+	}, [refreshKey]);
+
+	const handleRefresh = () => {
+		setRefreshKey(prev => prev + 1);
+	};
 
 	// counts for tabs (treat projectState==1 as pendiente)
 	const pendingCount = projects.filter((p) => p.projectState === 1).length;
@@ -50,7 +54,7 @@ const ProyectPageAdmin = () => {
 			<FlatList
 			data={dataToShow}
 			keyExtractor={(i) => String(i.id)}
-			renderItem={({ item }) => <ProjectCardAdmin project={item} />}
+			renderItem={({ item }) => <ProjectCardAdmin project={item} onPress={handleRefresh} />}
 				contentContainerStyle={{ paddingVertical: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
 			/>
