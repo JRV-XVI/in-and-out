@@ -123,3 +123,24 @@ export async function deleteUser(id: number): Promise<boolean> {
 	return true;
 }
 
+/**
+ * Elimina usuario en public.users y en auth.users (vía Edge Function con Service Role).
+ * - publicId: id bigint de la tabla public.users
+ * - authUserId: uuid de auth.users (supabase auth)
+ */
+export async function deleteUserEverywhere(publicId: number, authUserId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      body: { publicUserId: publicId, authUserId },
+    });
+    if (error) {
+      console.error('[Users] deleteUserEverywhere error:', error);
+      return false;
+    }
+    return !!data?.ok;
+  } catch (e) {
+    console.error('[Users] deleteUserEverywhere exception:', e);
+    return false;
+  }
+}
+

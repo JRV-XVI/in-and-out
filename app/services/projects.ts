@@ -59,19 +59,24 @@ export async function getProjectById(id: string): Promise<Project | null> {
 /**
  * Get projects by Responsable ID Responsables
  */
-export async function getProjectByResponsable(id: string): Promise<Project[]> {
+export async function getProjectByResponsable(id: string | number | null | undefined): Promise<Project[]> {
+  try {
+    // Normaliza a número y evita consultar con ids inválidos ('' / NaN / null / undefined)
+    const numericId = typeof id === 'string' ? Number(id) : id;
+    if (!Number.isFinite(numericId)) return [];
+
     const { data, error } = await supabase
-        .from("project")
-        .select("*")
-        .eq("responsible_id", id)
-        .order("created_at", { ascending: false });
+      .from("project")
+      .select("*")
+      .eq("responsible_id", numericId)
+      .order("created_at", { ascending: false });
 
-    if (error) {
-        console.error("Error obteniendo proyectos por responsable:", error);
-        return [];
-    }
-
-    return data as Project[];
+    if (error) throw error;
+    return (data ?? []) as Project[];
+  } catch (e) {
+    console.error("Error obteniendo proyectos por responsable:", e);
+    return [];
+  }
 }
 
 /**
