@@ -127,6 +127,7 @@ export async function updateProject(
 		console.error("Error actualizando proyecto:", error);
 		return null;
 	}
+    
 
 	return data as Project;
 }
@@ -135,6 +136,7 @@ export async function updateProject(
  * Delete project
  */
 export async function deleteProject(id: string): Promise<boolean> {
+    // Aqui hace falta que el vehiculo linkeado sea liberado previamente (poner isInProject en false)
 	const { error } = await supabase.from("project").delete().eq("id", id);
 
 	if (error) {
@@ -166,7 +168,7 @@ export async function getCompatibleValidatedProjectsForUser(userId: number): Pro
     // 2) Filtrar: disponibles (isAvailable === true) y NO ocupados
     const checks = await Promise.all(
         vehicles.map(async (v) => {
-            const busy = await isVehicleAssignedToActiveProject(v.plate);
+            const busy = v.isInProject;
             return { v, busy, available: v.isAvailable === true };
         })
     );
@@ -249,15 +251,14 @@ export async function acceptProjectWithFirstCompatibleVehicle(projectId: string,
     const vehicles = await getVehiclesByUser(userId);
     console.log('[Projects] user vehicles for acceptance (raw):', JSON.stringify(vehicles));
 
-    // 4) Compatibles por tipo y disponibles (isAvailable === true)
-    const compatible = vehicles.filter(v => (v.weightType ?? v.loadType) === requiredType && v.isAvailable === true);
+    // 4) Compatibles por tipo y disponibles (isAvailable === true  y  v.isInProject === false )
+    const compatible = vehicles.filter(v => (v.weightType ?? v.loadType) === requiredType && v.isAvailable === true && v.isInProject === false );
 
     // 5) Elegir el primero NO ocupado
     let match: typeof vehicles[number] | undefined;
     for (const v of compatible) {
-        const busy = await isVehicleAssignedToActiveProject(v.plate);
-        console.log('[Projects] checking vehicle', v.plate, 'isAvailable:', v.isAvailable, 'busy:', busy);
-        if (!busy) {
+        console.log('[Projects] checking vehicle', v.plate, 'isAvailable:', v.isAvailable, 'busy:', v.isInProject);
+        if (v.isInProject === false) {
             match = v;
             break;
         }
@@ -281,10 +282,10 @@ export async function acceptProjectWithFirstCompatibleVehicle(projectId: string,
 
     // 7) (Opcional pero recomendado) marcar el vehículo como no disponible
     try {
-        await updateVehicle(match.plate, { isAvailable: false });
-        console.log('[Projects] vehicle set to unavailable:', match.plate);
+        await updateVehicle(match.plate, { isInProject: true });
+        console.log('[Projects] vehicle set isInProject to TRUE:', match.plate);
     } catch (e) {
-        console.warn('[Projects] could not set vehicle unavailable:', match.plate, e);
+        console.warn('[Projects] could not set vehicle isInProject to TRUE:', match.plate, e);
     }
 
     console.log('[Projects] project accepted and updated:', JSON.stringify(data));

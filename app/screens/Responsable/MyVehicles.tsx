@@ -201,7 +201,7 @@ const MyVehicles = ({ navigation }: any) => {
       headerTitle="Mis Vehículos"
       primaryButtonText="Registrados"
       secondaryButtonText="Registrar"
-      sectionTitle={selectedView === 'list' ? 'Lista de Vehículos' : 'Nuevo Vehículo'}
+      sectionTitle={selectedView === 'list' ? '      Lista de Vehículos' : 'Nuevo Vehículo'}
     >
       <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
         <Ionicons name="chevron-back" style={styles.backIcon} size={28} />

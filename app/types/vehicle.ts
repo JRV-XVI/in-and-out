@@ -5,5 +5,6 @@ export interface Vehicle {
 	loadType?: number | null;         // Tipo de carga (ej. seca, refrigerada, líquida)
 	isAvailable?: boolean | null;     // Estado de disponibilidad
 	photo?: string | null;            // URL o ruta de la foto del vehículo
+	isInProject?: boolean | null;     // Estado de si esta enlazado a un proyecto
 }
 
