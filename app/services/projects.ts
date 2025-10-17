@@ -57,7 +57,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
 }
 
 /**
- * Get projects by Responsable ID
+ * Get projects by Responsable ID Responsables
  */
 export async function getProjectByResponsable(id: string): Promise<Project[]> {
     const { data, error } = await supabase
@@ -75,7 +75,7 @@ export async function getProjectByResponsable(id: string): Promise<Project[]> {
 }
 
 /**
- * Get projects by Donador ID
+ * Get projects by Donador ID Donadores
  */
 export async function getProjectByDonador(id: string): Promise<Project[]> {
 	const { data, error } = await supabase
@@ -90,6 +90,63 @@ export async function getProjectByDonador(id: string): Promise<Project[]> {
 	}
 
 	return data as Project[];
+}
+
+/**
+ * Get number of completed donations for a Donador
+ */
+export async function getCountsDonationsComplete(id: string): Promise<number> {
+	const { count, error } = await supabase
+		.from("project")
+		.select("*", { count: "exact" })
+		.eq("creator_id", id)
+		.eq("projectState", 6)
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return 0;
+	}
+
+	return count || 0;
+}
+
+/**
+ * Get number of pending donations for a Donador
+ */
+export async function getCountsDonationsPause(id: string): Promise<number> {
+	const { count, error } = await supabase
+		.from("project")
+		.select("*", { count: "exact" })
+		.eq("creator_id", id)
+		.not("projectState", "in", "(0,6)")
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return 0;
+	}
+
+	return count || 0;
+}
+
+/**
+ * Get number of completed donations for a Donador
+ */
+export async function getCountsDonationsCanceled(id: string): Promise<number> {
+	const { count, error } = await supabase
+		.from("project")
+		.select("*", { count: "exact" })
+		.eq("creator_id", id)
+		.eq("projectState", 0)
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return 0;
+	}
+
+	return count || 0;
 }
 
 /**
