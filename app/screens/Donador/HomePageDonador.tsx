@@ -9,7 +9,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
 import RefreshButton from '../../components/common/RefreshButton';
-import { createProject, getProjectByDonador } from '../../services/projects';
+import { createProject, getProjectByDonador, getCountsDonationsComplete, getCountsDonationsPause, getCountsDonationsCanceled } from '../../services/projects';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { Project } from '../../types/project';
@@ -44,6 +44,12 @@ const HomePageDonador = () => {
   const [myProjects, setMyProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
 
+  // Estados para estadísticas
+  const [completedCount, setCompletedCount] = useState<number>(0);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [rejectedCount, setRejectedCount] = useState<number>(0);
+  const [loadingStats, setLoadingStats] = useState(false);
+
   // Debug: Verificar userProfile
   useEffect(() => {
     console.log('=== DEBUG USER PROFILE ===');
@@ -52,6 +58,13 @@ const HomePageDonador = () => {
     console.log('authUser?.id (UUID):', authUser?.id);
   }, [userProfile, authUser]);
 
+  // Cargar estadísticas cuando cambie la vista a "estadisticas"
+  useEffect(() => {
+    if (selectedView === 'estadisticas' && userProfile?.id) {
+      loadStatistics();
+    }
+  }, [selectedView, userProfile?.id]);
+
   // Cargar proyectos del donador cuando cambie la vista a "misDonaciones"
   useEffect(() => {
     if (selectedView === 'misDonaciones' && userProfile?.id) {
@@ -59,6 +72,37 @@ const HomePageDonador = () => {
       loadMyProjects();
     }
   }, [selectedView, userProfile?.id]);
+
+  const loadStatistics = async () => {
+    if (!userProfile?.id) {
+      console.log('No hay userProfile.id disponible para estadísticas');
+      return;
+    }
+
+    console.log('📊 Cargando estadísticas para userId:', userProfile.id);
+    setLoadingStats(true);
+    try {
+      const userId = userProfile.id.toString();
+      
+      // Cargar conteo de completadas (estado 6)
+      const completed = await getCountsDonationsComplete(userId);
+      setCompletedCount(completed);
+
+      const pending = await getCountsDonationsPause(userId);
+      setPendingCount(pending);
+
+      const rejected = await getCountsDonationsCanceled(userId);
+      setRejectedCount(rejected);
+
+    } catch (error) {
+      console.error('❌ Error cargando estadísticas:', error);
+      setAlertMessage('Error al cargar estadísticas');
+      setAlertType('error');
+      setShowAlert(true);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const loadMyProjects = async () => {
     if (!userProfile?.id) {
@@ -73,9 +117,11 @@ const HomePageDonador = () => {
       const projects = await getProjectByDonador(userProfile.id.toString());
       console.log('Proyectos encontrados:', projects);
       
-      // Filtrar proyectos que no estén en estado 6 (completados/archivados)
-      const activeProjects = projects.filter(project => project.projectState !== 6);
-      console.log('Proyectos activos (excluyendo estado 6):', activeProjects);
+      // Filtrar proyectos que no estén en estado 0 (canceladas) ni estado 6 (completadas/archivadas)
+      const activeProjects = projects.filter(project => 
+        project.projectState !== 0 && project.projectState !== 6
+      );
+      console.log('Proyectos activos (excluyendo estado 0 y 6):', activeProjects);
       
       setMyProjects(activeProjects);
     } catch (error) {
@@ -324,23 +370,32 @@ const HomePageDonador = () => {
     >
       {selectedView === 'estadisticas' && (
         <>
-        <Card 
-          title = "Donaciones completadas"
-          count = {0}
-          type = "completados"
-        />
+          {loadingStats ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#CE0E2D" />
+              <Text style={styles.loadingText}>Cargando estadísticas...</Text>
+            </View>
+          ) : (
+            <>
+              <Card 
+                title = "Donaciones completadas"
+                count = {completedCount}
+                type = "completados"
+              />
 
-        <Card 
-          title = "Donaciones pendientes"
-          count = {0}
-          type = "pendientes"
-        />
+              <Card 
+                title = "Donaciones pendientes"
+                count = {pendingCount}
+                type = "pendientes"
+              />
 
-        <Card 
-          title = "Donaciones rechazadas"
-          count = {0}
-          type = "rechazado"
-        />
+              <Card 
+                title = "Donaciones canceladas"
+                count = {rejectedCount}
+                type = "rechazado"
+              />
+            </>
+          )}
         </>
       )}
 
