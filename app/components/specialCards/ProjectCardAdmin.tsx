@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Project } from '../../types/project';
+import { supabase } from '../../lib/supabase';
+import { sendNotificationToUser } from '../../services/notifications';
 
 interface DonationCardProps {
   project: Project;
@@ -24,10 +26,104 @@ const loadTypeLabels: Record<number, string> = {
 
 const ProjectCardAdmin: React.FC<DonationCardProps> = ({ project, onPress }) => {
   const [expanded, setExpanded] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handlePress = () => {
     setExpanded(!expanded);
     onPress?.();
+  };
+
+  // Confirmar donación (cambiar estado de 1 a 2)
+  const handleConfirmDonation = async () => {
+    Alert.alert(
+      'Confirmar donación',
+      '¿Deseas confirmar esta donación? El donador será notificado.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: async () => {
+            setIsProcessing(true);
+            try {
+              // Actualizar estado del proyecto a 2 (Confirmado)
+              const { error: updateError } = await supabase
+                .from('project')
+                .update({ projectState: 2 })
+                .eq('id', project.id);
+
+              if (updateError) throw updateError;
+
+              // Enviar notificación al donador
+              if (project.creator_id) {
+                const projectTitle = project.title || 'tu donación';
+                await sendNotificationToUser(
+                  Number(project.creator_id),
+                  'Donación confirmada',
+                  `Tu donación "${projectTitle}" ha sido confirmada por un administrador y está lista para ser recolectada`
+                );
+              }
+
+              Alert.alert('Éxito', 'Donación confirmada correctamente');
+              
+              // Recargar la página o refrescar
+              if (onPress) onPress();
+            } catch (error) {
+              console.error('Error al confirmar donación:', error);
+              Alert.alert('Error', 'No se pudo confirmar la donación');
+            } finally {
+              setIsProcessing(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Rechazar donación
+  const handleRejectDonation = async () => {
+    Alert.alert(
+      'Rechazar donación',
+      '¿Deseas rechazar esta donación? El donador será notificado.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Rechazar',
+          style: 'destructive',
+          onPress: async () => {
+            setIsProcessing(true);
+            try {
+              // Actualizar estado del proyecto a 0 (Rechazado) o eliminarlo
+              const { error: updateError } = await supabase
+                .from('project')
+                .update({ projectState: 0 })
+                .eq('id', project.id);
+
+              if (updateError) throw updateError;
+
+              // Enviar notificación al donador
+              if (project.creator_id) {
+                const projectTitle = project.title || 'tu donación';
+                await sendNotificationToUser(
+                  Number(project.creator_id),
+                  'Donación rechazada',
+                  `Lo sentimos, tu donación "${projectTitle}" no pudo ser aceptada en este momento`
+                );
+              }
+
+              Alert.alert('Rechazada', 'La donación ha sido rechazada');
+              
+              // Recargar la página o refrescar
+              if (onPress) onPress();
+            } catch (error) {
+              console.error('Error al rechazar donación:', error);
+              Alert.alert('Error', 'No se pudo rechazar la donación');
+            } finally {
+              setIsProcessing(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Obtener configuración del estatus
@@ -253,6 +349,31 @@ const ProjectCardAdmin: React.FC<DonationCardProps> = ({ project, onPress }) => 
             )}
           </View>
 
+          {/* Botones de acción para donaciones pendientes */}
+          {project.projectState === 1 && (
+            <View style={styles.actionsSection}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.rejectButton]}
+                onPress={handleRejectDonation}
+                disabled={isProcessing}
+              >
+                <Ionicons name="close-circle-outline" size={20} color="#fff" />
+                <Text style={styles.actionButtonText}>Rechazar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.confirmButton]}
+                onPress={handleConfirmDonation}
+                disabled={isProcessing}
+              >
+                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                <Text style={styles.actionButtonText}>
+                  {isProcessing ? 'Procesando...' : 'Confirmar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Fecha de creación */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
@@ -457,6 +578,37 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  actionsSection: {
+    flexDirection: 'row',
+    padding: 16,
+    paddingTop: 0,
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 6,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  confirmButton: {
+    backgroundColor: '#10B981',
+  },
+  rejectButton: {
+    backgroundColor: '#EF4444',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });
 
