@@ -174,4 +174,61 @@ export async function deleteAllNotifications(userId: number): Promise<boolean> {
   }
 }
 
+/**
+ * Enviar notificación a todos los administradores (userType === 3).
+ * @param title - Título de la notificación
+ * @param body - Cuerpo de la notificación
+ * @returns Número de notificaciones enviadas exitosamente
+ */
+export async function sendNotificationToAllAdmins(
+  title: string,
+  body: string
+): Promise<number> {
+  try {
+    // Obtener todos los usuarios con userType === 3 (administradores)
+    // Intentamos primero como número
+    const { data: admins, error: fetchError } = await supabase
+      .from('users')
+      .select('id, name, email, userType')
+      .eq('userType', 3);
+
+    // Si no encontramos resultados, intentamos como string
+    let finalAdmins = admins;
+    if ((!admins || admins.length === 0) && !fetchError) {
+      const { data: adminsStr } = await supabase
+        .from('users')
+        .select('id, name, email, userType')
+        .eq('userType', '3');
+
+      if (adminsStr && adminsStr.length > 0) {
+        finalAdmins = adminsStr;
+      }
+    }
+
+    if (fetchError || !finalAdmins || finalAdmins.length === 0) {
+      return 0;
+    }
+
+    // Crear notificaciones para todos los administradores
+    const notifications = finalAdmins.map(admin => ({
+      title,
+      body,
+      user_id: admin.id,
+    }));
+
+    const { data, error: insertError } = await supabase
+      .from('notifications')
+      .insert(notifications)
+      .select();
+
+    if (insertError) {
+      return 0;
+    }
+
+    return data?.length || 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
 

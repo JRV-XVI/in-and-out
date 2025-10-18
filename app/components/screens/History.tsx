@@ -43,7 +43,7 @@ const History = () => {
       let query = supabase
         .from('project')
         .select('*')
-        .eq('projectState', 6);
+        .in('projectState', [0, 6]); // Incluir estado 0 (cancelados) y 6 (completados)
 
       if (userType === 1) {
         query = query.eq('creator_id', userId);
@@ -121,7 +121,7 @@ const History = () => {
       ) : proyectosFiltrados.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="time-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>No hay proyectos completados</Text>
+          <Text style={styles.emptyText}>No hay proyectos en el historial</Text>
         </View>
       ) : (
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -130,7 +130,7 @@ const History = () => {
               key={item.id}
               project={{
                 ...item,
-                token: item.token ? Number(item.token) : null,
+                token: item.token ? String(item.token) : null,
                 projectType: typeof item.projectType === 'string' ? Number(item.projectType) : item.projectType,
               }}
             />

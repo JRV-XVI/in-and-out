@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { FlatList, TouchableOpacity, StyleSheet, View, Text, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,8 @@ import { acceptProjectWithFirstCompatibleVehicle } from '../../services/projects
 import { useCompatibleProjects, useProjects } from '../../hooks/useProjects';
 import { sendNotificationToUser } from '../../services/notifications';
 import RefreshButton from '../../components/common/RefreshButton';
+import { getVehiclesByUser } from '../../services/vehicles';
+import { Vehicle } from '../../types/vehicle';
 
 function parseFecha(fecha: string) {
   const [d, m, y] = fecha.split('/');
@@ -46,9 +48,13 @@ const HomePageResponsable = () => {
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
   const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
+  const [userVehicles, setUserVehicles] = useState<Vehicle[]>([]);
   // ELIMINAR: const [isRefreshing, setIsRefreshing] = useState(false);
 
   const responsableId = String(userProfile?.id || authUser?.id || '');
+  
+  // Ref para rastrear proyectos compatibles previos
+  const previousCompatibleProjectsRef = useRef<Set<string>>(new Set());
 
   const {
     projects: proyectosAceptados,
@@ -66,6 +72,87 @@ const HomePageResponsable = () => {
 
   const tipoProyecto = selectedView !== 'Abiertas' ? selectedView : undefined;
   const { projects, loading, error, refetch } = useProjects(responsableId, tipoProyecto);
+
+  // Efecto para cargar vehículos del usuario
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (!userProfile?.id) return;
+      try {
+        const vehicles = await getVehiclesByUser(Number(userProfile.id));
+        setUserVehicles(vehicles);
+      } catch (error) {
+        console.error('Error al cargar vehículos:', error);
+      }
+    };
+
+    loadVehicles();
+  }, [userProfile?.id]);
+
+  // Efecto para detectar nuevos proyectos compatibles y enviar notificaciones
+  useEffect(() => {
+    const checkNewCompatibleProjects = async () => {
+      if (!proyectosCompatibles || proyectosCompatibles.length === 0 || !userProfile?.id) return;
+
+      const currentProjectIds = new Set(proyectosCompatibles.map(p => String(p.id)));
+      const previousIds = previousCompatibleProjectsRef.current;
+
+      // Detectar nuevos proyectos (que no estaban antes)
+      const newProjectIds = Array.from(currentProjectIds).filter(id => !previousIds.has(id));
+
+      if (newProjectIds.length > 0) {
+        try {
+          // Obtener vehículos del usuario
+          const vehicles = await getVehiclesByUser(Number(userProfile.id));
+          
+          // Filtrar vehículos disponibles
+          const availableVehicles = vehicles.filter(v => v.isAvailable === true);
+
+          for (const projectId of newProjectIds) {
+            const project = proyectosCompatibles.find(p => String(p.id) === projectId);
+            if (!project) continue;
+
+            // Determinar vehículo compatible basado en el peso del proyecto
+            let compatibleVehicle = null;
+            if (availableVehicles.length > 0) {
+              const projectWeight = project.weight || 0;
+              
+              // Determinar el tipo de carga requerido
+              let requiredWeightType: number | null = null;
+              if (projectWeight >= 3 && projectWeight <= 5) requiredWeightType = 1;
+              else if (projectWeight > 5 && projectWeight <= 10) requiredWeightType = 2;
+              else if (projectWeight > 10) requiredWeightType = 3;
+
+              // Buscar vehículo compatible con el tipo de carga
+              if (requiredWeightType) {
+                compatibleVehicle = availableVehicles.find(v => {
+                  const weightType = v.weightType ?? v.loadType;
+                  return weightType === requiredWeightType;
+                });
+              }
+            }
+
+            const projectTitle = project.title || 'Sin título';
+            const vehicleInfo = compatibleVehicle 
+              ? ` es compatible con tu vehículo (${compatibleVehicle.plate})` 
+              : ' está disponible';
+
+            // Enviar notificación local
+            await sendLocalNotification(
+              'Nuevo proyecto compatible',
+              `El proyecto "${projectTitle}"${vehicleInfo}`
+            );
+          }
+        } catch (error) {
+          console.error('Error al verificar proyectos compatibles:', error);
+        }
+      }
+
+      // Actualizar referencia con los IDs actuales
+      previousCompatibleProjectsRef.current = currentProjectIds;
+    };
+
+    checkNewCompatibleProjects();
+  }, [proyectosCompatibles, userProfile?.id, sendLocalNotification]);
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
@@ -107,10 +194,10 @@ const HomePageResponsable = () => {
       };
 
       const localMessages: Record<number, string> = {
-        2: `Solicita el token al donador para empaquetar el proyecto${projectName}.`,
-        3: `Iniciaste el viaje del proyecto${projectName}.`,
+
+        3: `Iniciaste el viaje del proyecto${projectName}. Solicita el token al donador.`,
         4: `El proyecto${projectName} está en camino.`,
-        5: `Finalizaste el proyecto${projectName}, solicita el token al donador.`,
+        5: `Finalizaste el proyecto${projectName}.`,
         6: `Terminaste el proyecto${projectName} exitosamente.`
       };
 
@@ -148,6 +235,13 @@ const HomePageResponsable = () => {
       const carga = getCargaLabelByWeight(p.weight);
       const cargaSimple = carga.includes('pesada') ? 'Pesada' : carga.includes('mediana') ? 'Mediana' : 'Chica';
 
+      // Calcular weightType basado en el peso del proyecto
+      const projectWeight = p.weight || 0;
+      let weightType: number | undefined = undefined;
+      if (projectWeight >= 3 && projectWeight <= 5) weightType = 1; // Ligera
+      else if (projectWeight > 5 && projectWeight <= 10) weightType = 2; // Mediana
+      else if (projectWeight > 10) weightType = 3; // Pesada
+
       return {
         id: String(p.id),
         fecha,
@@ -155,6 +249,11 @@ const HomePageResponsable = () => {
         carga: cargaSimple,
         voluntarios: String(p.token ?? 0),
         proyecto: tipo,
+        weightType,
+        direccion: p.direction || undefined,
+        productos: p.foodList ? Object.values(p.foodList)
+          .filter((item: any) => item && item.nombre)
+          .map((item: any) => item.nombre) : [],
       };
     });
 
@@ -195,11 +294,20 @@ const HomePageResponsable = () => {
   const handleRefresh = async () => {
     // ELIMINAR: setIsRefreshing(true);
     try {
-      await Promise.all([
+      const refreshPromises = [
         refetchCompatibles(),
         refetchAceptados(),
         refetch()
-      ]);
+      ];
+      
+      // También recargar vehículos
+      if (userProfile?.id) {
+        refreshPromises.push(
+          getVehiclesByUser(Number(userProfile.id)).then(vehicles => setUserVehicles(vehicles))
+        );
+      }
+      
+      await Promise.all(refreshPromises);
     } catch (error) {
       console.error('Error al refrescar:', error);
     }
@@ -237,24 +345,14 @@ const HomePageResponsable = () => {
       }
     >
       {selectedView === 'Abiertas' && (
-        <View style={styles.topRow}>
-          <View style={styles.filterContainer}>
-            <Filter
-              label="Ordenar por:"
-              activeOrder={filterOrder}
-              onOrderChange={setFilterOrder}
-              tipoActive={tipoFiltro}
-              onTipoChange={setTipoFiltro}
-            />
-          </View>
-          <View style={styles.vehicleButtonContainer}>
-            <TouchableOpacity
-              style={styles.vehicleButton}
-              onPress={() => navigation.navigate('MyVehicles' as never)}
-            >
-              <Ionicons name="car-outline" size={28} color="#fff" />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.filterContainer}>
+          <Filter
+            label="Ordenar por:"
+            activeOrder={filterOrder}
+            onOrderChange={setFilterOrder}
+            tipoActive={tipoFiltro}
+            onTipoChange={setTipoFiltro}
+          />
         </View>
       )}
 
@@ -269,7 +367,11 @@ const HomePageResponsable = () => {
               carga={item.carga}
               voluntarios={item.voluntarios}
               proyecto={item.proyecto}
-              onAccept={async () => {
+              direccion={item.direccion}
+              productos={item.productos}
+              weightType={item.weightType}
+              availableVehicles={userVehicles}
+              onAccept={async (selectedVehicle?: Vehicle) => {
                 if (!userProfile?.id) return;
 
                 // Obtener el creator_id y nombre del proyecto antes de aceptarlo
@@ -293,14 +395,16 @@ const HomePageResponsable = () => {
                     );
                   }
 
-                  // Notificación para el responsable
+                  // Notificación para el responsable con info del vehículo
+                  const vehicleInfo = selectedVehicle ? ` usando el vehículo ${selectedVehicle.plate}` : '';
                   await sendLocalNotification(
                     'Proyecto aceptado',
-                    `Has aceptado el proyecto${projectName} exitosamente`
+                    `Has aceptado el proyecto${projectName}${vehicleInfo} exitosamente`
                   );
 
-                  refetch();
-                  setSelectedView(item.proyecto === 'Entrada' ? 'Entrada' : 'Salida');
+                  // Refrescar la lista de proyectos sin cambiar de vista
+                  await refetchCompatibles();
+                  await refetch();
                 }
               }}
               icon={
@@ -362,33 +466,9 @@ const HomePageResponsable = () => {
 };
 
 const styles = StyleSheet.create({
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  filterContainer: {
     marginHorizontal: 16,
     marginBottom: 8,
-  },
-  filterContainer: {
-    flex: 1,
-    marginRight: 8,
-  },
-  vehicleButtonContainer: {
-    alignItems: 'flex-end',
-    marginTop: -10,
-    marginRight: -4,
-  },
-  vehicleButton: {
-    backgroundColor: '#CE0E2D',
-    borderRadius: 24,
-    padding: 10,
-    borderColor: '#CE0E2D',
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 48,
-    marginRight: 0,
-    elevation: 6,
   },
   loadingContainer: {
     flex: 1,

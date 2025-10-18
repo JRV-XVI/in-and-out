@@ -48,7 +48,7 @@ const mapTipoToLoadType = (tipo: Tipo) => {
 const MyVehicles = ({ navigation }: any) => {
   const { user } = useUser(); // <-- obtenemos el usuario logeado
 
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('vehicles');
   const [query, setQuery] = useState('');
   const [selectedView, setSelectedView] = useState<'list' | 'form'>('list');
 
@@ -194,10 +194,6 @@ const MyVehicles = ({ navigation }: any) => {
       (v.plate ?? '').toLowerCase().includes(query.toLowerCase())
   );
 
-  const onBackPress = () => {
-    if (navigation && navigation.goBack) navigation.goBack();
-  };
-
   return (
     <HomePageTemplate
       activeTab={activeTab}
@@ -209,10 +205,6 @@ const MyVehicles = ({ navigation }: any) => {
       secondaryButtonText="Registrar"
       sectionTitle={selectedView === 'list' ? '      Lista de Vehículos' : '      Nuevo Vehículo'}
     >
-      <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-        <Ionicons name="chevron-back" style={styles.backIcon} size={28} />
-      </TouchableOpacity>
-
       {selectedView === 'list' ? (
         <>
           <View style={styles.searchBar}>
@@ -382,16 +374,6 @@ const MyVehicles = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  backButton: {
-    position: 'absolute',
-    top: 25,
-    left: 25,
-    zIndex: 10,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 4,
-  },
-  backIcon: { color: '#CE0E2D' },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',

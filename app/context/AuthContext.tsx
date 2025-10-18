@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     console.log('🔧 AuthProvider inicializándose...');
@@ -43,24 +44,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('📱 Sesión inicial:', session?.user?.email || 'No hay sesión');
       setAuthUser(session?.user ?? null);
       if (session?.user) {
-        console.log('✅ Usuario autenticado, cargando perfil...');
+        console.log('✅ Usuario autenticado (sesión persistente), cargando perfil...');
         loadUserProfile(session.user.id);
       } else {
         console.log('❌ No hay sesión activa');
         setLoading(false);
       }
+      setIsInitialLoad(false);
     });
 
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
+        
+        // Ignorar TOKEN_REFRESHED para evitar doble carga
+        // Solo procesar SIGNED_IN, SIGNED_OUT, etc.
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('⏭️ Ignorando TOKEN_REFRESHED (evitar doble carga)');
+          return;
+        }
+        
         setAuthUser(session?.user ?? null);
         
-        if (session?.user) {
-          console.log('✅ Cargando perfil después del cambio de auth...');
+        if (session?.user && event === 'SIGNED_IN') {
+          console.log('✅ SIGNED_IN: Cargando perfil...');
           await loadUserProfile(session.user.id);
-        } else {
+        } else if (!session?.user && event === 'SIGNED_OUT') {
           console.log('❌ Sesión cerrada');
           setUserProfile(null);
           setLoading(false);
@@ -73,14 +83,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadUserProfile = async (authUserId: string) => {
     console.log('📥 Cargando perfil para authUserId:', authUserId);
+    setLoading(true);
     try {
       const profile = await getUserProfile(authUserId);
-      console.log('✅ Perfil cargado:', profile);
+      console.log('✅ Perfil cargado exitosamente:', {
+        nombre: profile?.name,
+        email: profile?.email,
+        userType: profile?.userType
+      });
       setUserProfile(profile);
     } catch (error) {
       console.error('❌ Error loading user profile:', error);
     } finally {
       setLoading(false);
+      console.log('✅ Loading state set to false');
     }
   };
 

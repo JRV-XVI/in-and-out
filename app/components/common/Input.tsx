@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#5C5C60',
-    color: '#fff',
+    color: '#FFFFFF', // Texto en blanco
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 10,

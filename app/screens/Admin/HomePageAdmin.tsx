@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View } from 'react-native';
-import HomePageTemplate from '../../components/screens/HomePageTemplate';
+import HomePageTemplate from '../../components/screens/AdminHomePageTemplate';
 import Card from '../../components/common/Card';
 import ProyectPageAdmin from './ProyectPageAdmin';
+import UsersPageAdmin from './UsersPageAdmin';
+import { useAllUsers } from '../../hooks/useUsers';
+import { getAllProjects } from '../../services/projects';
+import { Project } from '../../types/project';
 
 const HomePageAdmin = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -16,12 +20,44 @@ const HomePageAdmin = () => {
     }
   }
 
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoadingProjects(true);
+      try {
+        const data = await getAllProjects();
+        if (mounted) setAllProjects(data || []);
+      } catch (err) {
+        console.error('Error loading projects for dashboard:', err);
+      } finally {
+        if (mounted) setLoadingProjects(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  const finalizedProjects = allProjects ? allProjects.filter(p => p.projectState != null && p.projectState > 4).length : 0;
+
+  // Load all users
+  const { users: allUsers } = useAllUsers();
+  // Donadores (userType === 1)
+  const donadoresCount = allUsers ? allUsers.filter(u => u.userType === 1).length : 0;
+  // Responsables (userType === 2)
+  const responsablesCount = allUsers ? allUsers.filter(u => u.userType === 2).length : 0;
+
   return (
     <HomePageTemplate
       activeTab={activeTab}
       onTabPress={handleTabPress}
       onPrimaryAction={() => setSelectedView('proyectos')}
       onSecondaryAction={() => setSelectedView('usuarios')}
+    // Disable the outer ScrollView when showing views that render a FlatList
+    // (projects or users) to avoid nesting a VirtualizedList inside a ScrollView.
+    useScroll={selectedView === 'paginaPrincipal'}
       primaryButtonText="Proyectos"
       secondaryButtonText="Usuarios"
       sectionTitle={
@@ -34,7 +70,7 @@ const HomePageAdmin = () => {
         <>
         <Card 
           title = "Ingreso de alimentos"
-          count = {0}
+          count = {finalizedProjects}
           type = "completados"
         />
 
@@ -46,13 +82,13 @@ const HomePageAdmin = () => {
 
         <Card 
           title = "Responsables registrados"
-          count = {0}
+          count = {responsablesCount}
           type = "responsables"
         />
 
         <Card 
           title = "Donadores registrados"
-          count = {0}
+          count = {donadoresCount}
           type = "donadores"
         />
         </>
@@ -66,6 +102,7 @@ const HomePageAdmin = () => {
 
       {selectedView === 'usuarios' && (
         <>
+        <UsersPageAdmin />
         </>
       )}
       

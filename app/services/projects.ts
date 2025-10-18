@@ -1,6 +1,7 @@
 import supabase from "../lib/supabase";
 import { Project } from "../types/project";
-import { getVehiclesByUser, updateVehicle } from "./vehicles"; // <-- añadir updateVehicle
+import { getVehiclesByUser, updateVehicle } from "./vehicles";
+import { generateProjectToken } from "../utils/random"; // <-- importar generador
 
 /**
  * Determina si un vehículo (por placa) está asignado a un proyecto activo.
@@ -56,25 +57,30 @@ export async function getProjectById(id: string): Promise<Project | null> {
 }
 
 /**
- * Get projects by Responsable ID
+ * Get projects by Responsable ID Responsables
  */
-export async function getProjectByResponsable(id: string): Promise<Project[]> {
+export async function getProjectByResponsable(id: string | number | null | undefined): Promise<Project[]> {
+  try {
+    // Normaliza a número y evita consultar con ids inválidos ('' / NaN / null / undefined)
+    const numericId = typeof id === 'string' ? Number(id) : id;
+    if (!Number.isFinite(numericId)) return [];
+
     const { data, error } = await supabase
-        .from("project")
-        .select("*")
-        .eq("responsible_id", id)
-        .order("created_at", { ascending: false });
+      .from("project")
+      .select("*")
+      .eq("responsible_id", numericId)
+      .order("created_at", { ascending: false });
 
-    if (error) {
-        console.error("Error obteniendo proyectos por responsable:", error);
-        return [];
-    }
-
-    return data as Project[];
+    if (error) throw error;
+    return (data ?? []) as Project[];
+  } catch (e) {
+    console.error("Error obteniendo proyectos por responsable:", e);
+    return [];
+  }
 }
 
 /**
- * Get projects by Donador ID
+ * Get projects by Donador ID Donadores
  */
 export async function getProjectByDonador(id: string): Promise<Project[]> {
 	const { data, error } = await supabase
@@ -89,6 +95,63 @@ export async function getProjectByDonador(id: string): Promise<Project[]> {
 	}
 
 	return data as Project[];
+}
+
+/**
+ * Get number of completed donations for a Donador
+ */
+export async function getCountsDonationsComplete(id: string): Promise<number> {
+	const { count, error } = await supabase
+		.from("project")
+		.select("*", { count: "exact" })
+		.eq("creator_id", id)
+		.eq("projectState", 6)
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return 0;
+	}
+
+	return count || 0;
+}
+
+/**
+ * Get number of pending donations for a Donador
+ */
+export async function getCountsDonationsPause(id: string): Promise<number> {
+	const { count, error } = await supabase
+		.from("project")
+		.select("*", { count: "exact" })
+		.eq("creator_id", id)
+		.not("projectState", "in", "(0,6)")
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return 0;
+	}
+
+	return count || 0;
+}
+
+/**
+ * Get number of completed donations for a Donador
+ */
+export async function getCountsDonationsCanceled(id: string): Promise<number> {
+	const { count, error } = await supabase
+		.from("project")
+		.select("*", { count: "exact" })
+		.eq("creator_id", id)
+		.eq("projectState", 0)
+		.order("created_at", { ascending: false });
+
+	if (error) {
+		console.error("Error obteniendo proyectos por donador:", error);
+		return 0;
+	}
+
+	return count || 0;
 }
 
 /**
@@ -225,7 +288,7 @@ function weightToType(weight?: number | null): 1 | 2 | 3 | null {
     if (typeof weight !== 'number') return null;
     if (weight > 10) return 3;         // large
     if (weight > 5 && weight <= 10) return 2; // medium
-    if (weight > 0 && weight < 5) return 1;   // small
+    if (weight > 0 && weight <= 5) return 1;   // small
     return null; // p.ej. weight === 5 o <= 0
 }
 
@@ -309,6 +372,76 @@ export async function getAcceptedProjectsForResponsible(userId: number): Promise
 	}
 
 	return (data || []) as Project[];
+}
+
+/**
+ * GET: obtener el token del proyecto por ID
+ */
+export async function getProjectToken(projectId: string | number): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('project')
+      .select('token')
+      .eq('id', projectId)
+      .single();
+
+    if (error) {
+      console.error('[Projects] getProjectToken error:', error);
+      return null;
+    }
+    return (data?.token ?? null) as string | null;
+  } catch (e) {
+    console.error('[Projects] getProjectToken exception:', e);
+    return null;
+  }
+}
+
+/**
+ * POST: comparar token y consumirlo (borrarlo) si coincide.
+ * - Operación atómica: actualiza solo si id y token coinciden.
+ * - Devuelve true si lo consumió; false si no coincidió o ya no existe.
+ */
+export async function compareAndConsumeProjectToken(
+  projectId: string | number,
+  token: string
+): Promise<boolean> {
+  if (!token || typeof token !== 'string') return false;
+
+  try {
+    const { data, error } = await supabase
+      .from('project')
+      .update({ token: null })
+      .eq('id', projectId)
+      .eq('token', token)
+      .select('id')
+      .maybeSingle(); // evita throw si no hay coincidencia
+
+    if (error) {
+      console.error('[Projects] compareAndConsumeProjectToken error:', error);
+      return false;
+    }
+    // Si data existe, hubo match y se consumió el token
+    return !!data?.id;
+  } catch (e) {
+    console.error('[Projects] compareAndConsumeProjectToken exception:', e);
+    return false;
+  }
+}
+
+// Genera un token único verificando colisión (intentos limitados)
+async function generateUniqueProjectToken(attempts: number = 5): Promise<string> {
+  let candidate = generateProjectToken();
+  for (let i = 0; i < attempts; i++) {
+    const { data, error } = await supabase
+      .from('project')
+      .select('id')
+      .eq('token', candidate)
+      .limit(1);
+
+    if (!error && (!data || data.length === 0)) return candidate;
+    candidate = generateProjectToken();
+  }
+  return candidate; // fallback si no confirmamos unicidad
 }
 
 

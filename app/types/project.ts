@@ -5,9 +5,9 @@ export interface Project {
 	vehicle_id?: string | null;
 	title?: string | null;
 	projectState?: number | null;
-	token?: number | null;         // smallint
+	token?: string | null;         // tokens de 4 chars (letras/números/símbolos)
 	projectType?: number | null;
-	creator_id?: string | null;
+	creator_id?: { id: string | null; name: string | null};
 	weight?: number | null;
 	loadType?: number | null;
 	foodList?: any | null;         // json column — puedes cambiar a Record<string, unknown> si lo prefieres
@@ -15,4 +15,5 @@ export interface Project {
 	direction?: string | null;
 	photo?: string | null;
 	notes?: string | null;
+	volunteers?: number | null;
 }

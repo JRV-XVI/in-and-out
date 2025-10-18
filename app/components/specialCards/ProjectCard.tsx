@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
 import { Project } from '../../types/project';
+import { compareAndConsumeProjectToken } from '../../services/projects'; // <-- agregar import
 
 interface ProjectCardProps {
   project: Project;
@@ -13,6 +14,7 @@ interface ProjectCardProps {
 }
 
 const statusConfig = {
+  cancelado: { label: 'Cancelado', color: '#CE0E2D', icon: 'close-circle-outline' },
   confirmacion: { label: 'Confirmación', color: '#888', icon: 'time-outline' },
   en_recoleccion: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
   recolectado: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
@@ -50,10 +52,10 @@ const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
 };
 
 // Helper to get status from projectState
-const getStatus = (projectState: number | null | undefined): 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' => {
+const getStatus = (projectState: number | null | undefined): 'cancelado' | 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' => {
+  if (projectState === 0) return 'cancelado';
   if (projectState === 1 || projectState === 2) return 'confirmacion';
   if (projectState === 3) return 'en_recoleccion';
-  if (projectState === 4) return 'recolectado';
   return 'finalizado';
 };
 
@@ -76,21 +78,45 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
+  const [verifying, setVerifying] = useState(false);
   
   // Extract values from project
   const type = getProjectType(project.projectType);
   const date = formatDate(project.expirationDate || project.created_at);
-  const donors = 1; // Default value, can be adjusted if needed
   const vehicleType = getVehicleTypeLabel(project.loadType);
   const address = project.direction || 'Sin dirección';
-  const donorName = project.title || 'Sin nombre';
+  const donorName = project.creator_id?.name || project.title || 'Sin nombre';
   const products = getProducts(project.foodList);
   const status = getStatus(project.projectState);
-  const tokens = project.token ? [Number(project.token)] : [];
+  const tokens = project.token ? [String(project.token)] : [];
   
   const isEntrada = type === 'entrada';
   const currentStatus = statusConfig[status];
   const currentStatusIndex = statusOrder.indexOf(status);
+
+  // Verifica token y, si es correcto, consume y avanza a "Recolectado"
+  const handleVerifyAndCollected = async () => {
+    if (!tokenInput || tokenInput.trim().length === 0) {
+      Alert.alert('Token requerido', 'Ingresa el token para continuar.');
+      return;
+    }
+    try {
+      setVerifying(true);
+      const ok = await compareAndConsumeProjectToken(String(project.id), tokenInput.trim());
+      if (!ok) {
+        Alert.alert('Token inválido', 'El token no coincide. Verifícalo e intenta de nuevo.');
+        return;
+      }
+      Alert.alert('Éxito', 'Token verificado correctamente.');
+      setTokenInput('');
+      onCollected && onCollected();
+    } catch (e) {
+      console.error('[ProjectCard] verify token error:', e);
+      Alert.alert('Error', 'No fue posible verificar el token. Intenta nuevamente.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   // Función para obtener el botón según el estado
   const renderActionButton = () => {
@@ -106,19 +132,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.startBtnText}>Iniciar Viaje</Text>
           </TouchableOpacity>
         );
-      
       case 'en_recoleccion':
         return (
           <TouchableOpacity
             style={[styles.startBtn, { backgroundColor: '#10B981' }]}
-            onPress={onCollected}
+            onPress={handleVerifyAndCollected} // <-- validar y consumir token antes de avanzar
             activeOpacity={0.8}
+            disabled={verifying}
           >
             <Ionicons name="checkmark-done-circle-outline" size={20} color="#fff" style={styles.btnIcon} />
-            <Text style={styles.startBtnText}>Recolectado</Text>
+            <Text style={styles.startBtnText}>{verifying ? 'Verificando…' : 'Recolectado'}</Text>
           </TouchableOpacity>
         );
-      
       case 'recolectado':
         return (
           <TouchableOpacity
@@ -130,7 +155,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.startBtnText}>Finalizar</Text>
           </TouchableOpacity>
         );
-      
       case 'finalizado':
         return (
           <TouchableOpacity
@@ -142,7 +166,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Text style={styles.startBtnText}>Terminar Proyecto</Text>
           </TouchableOpacity>
         );
-      
       default:
         return null;
     }
@@ -286,13 +309,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <Text style={styles.detailText}>{vehicleType}</Text>
               </View>
             </View>
-            <View style={styles.detailRow}>
-              <Ionicons name="cube-outline" size={20} color="#CE0E2D" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Donadores</Text>
-                <Text style={styles.detailText}>{donors}</Text>
-              </View>
-            </View>
           </View>
 
           {/* Token Section - Solo visible en "en_recoleccion" */}
@@ -319,8 +335,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               )}
             </View>
           )}
-
-          {/* Botón dinámico según estado */}
           {renderActionButton()}
 
           {/* Fecha al final como DonationCard */}
