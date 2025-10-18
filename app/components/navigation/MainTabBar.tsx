@@ -1,29 +1,62 @@
 import React from 'react';
 import { View, Pressable, StyleSheet, Platform } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import SideBar from '../../components/screens/SideBar';
 import Notifications from '../../components/screens/Notifications';
+import Export from '../../components/screens/Export';
 import Modal from 'react-native-modal';
+import { useUser } from '../../context/UserContext';
 
 interface MainTabBarProps {
   onTabPress: (tab: string) => void;
   activeTab: string;
 }
 
-const tabs = [
-  { key: 'search', icon: <Ionicons name="search" size={28} color="#fff" /> },
-  { key: 'list', icon: <MaterialIcons name="assignment" size={28} color="#fff" /> },
-  { key: 'home', icon: <Ionicons name="home" size={28} color="#fff" /> },
-  { key: 'notifications', icon: <Ionicons name="notifications" size={28} color="#fff" /> },
-  { key: 'profile', icon: <Ionicons name="person" size={28} color="#fff" /> },
-];
-
 const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
   const navigation = useNavigation<any>();
+  const { user } = useUser();
   const [sideBarVisible, setSideBarVisible] = React.useState(false);
   const [notificationsVisible, setNotificationsVisible] = React.useState(false);
+  const [exportVisible, setExportVisible] = React.useState(false);
   const [sideBarTab, setSideBarTab] = React.useState<string | null>(null);
+
+  // Definir tabs según el tipo de usuario
+  const getTabs = () => {
+    const userType = user?.userType;
+
+    // Para Donador (1) y Admin (3): mostrar exportación en lugar de búsqueda
+    if (userType === 1 || userType === 3) {
+      return [
+        { key: 'export', icon: <MaterialCommunityIcons name="file-export" size={28} color="#fff" /> },
+        { key: 'list', icon: <MaterialIcons name="assignment" size={28} color="#fff" /> },
+        { key: 'home', icon: <Ionicons name="home" size={28} color="#fff" /> },
+        { key: 'notifications', icon: <Ionicons name="notifications" size={28} color="#fff" /> },
+        { key: 'profile', icon: <Ionicons name="person" size={28} color="#fff" /> },
+      ];
+    }
+
+    // Para Responsable (2): mostrar vehículos en lugar de búsqueda
+    if (userType === 2) {
+      return [
+        { key: 'vehicles', icon: <Ionicons name="car" size={28} color="#fff" /> },
+        { key: 'list', icon: <MaterialIcons name="assignment" size={28} color="#fff" /> },
+        { key: 'home', icon: <Ionicons name="home" size={28} color="#fff" /> },
+        { key: 'notifications', icon: <Ionicons name="notifications" size={28} color="#fff" /> },
+        { key: 'profile', icon: <Ionicons name="person" size={28} color="#fff" /> },
+      ];
+    }
+
+    // Default (por si acaso)
+    return [
+      { key: 'list', icon: <MaterialIcons name="assignment" size={28} color="#fff" /> },
+      { key: 'home', icon: <Ionicons name="home" size={28} color="#fff" /> },
+      { key: 'notifications', icon: <Ionicons name="notifications" size={28} color="#fff" /> },
+      { key: 'profile', icon: <Ionicons name="person" size={28} color="#fff" /> },
+    ];
+  };
+
+  const tabs = getTabs();
 
   const handleTabPress = (tabKey: string) => {
     if (tabKey === 'profile') {
@@ -32,6 +65,20 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
     } else if (tabKey === 'notifications') {
       setNotificationsVisible(true);
       setSideBarTab('notifications');
+    } else if (tabKey === 'export') {
+      setExportVisible(true);
+      setSideBarTab('export');
+    } else if (tabKey === 'vehicles') {
+      // Navegar a la página de vehículos
+      navigation.navigate('MyVehicles' as never);
+    } else if (tabKey === 'home') {
+      // Para responsable, navegar a HomePageResponsable
+      if (user?.userType === 2) {
+        navigation.navigate('HomePageResponsable' as never);
+      } else {
+        // Para otros usuarios, usar el comportamiento normal
+        onTabPress(tabKey);
+      }
     } else {
       onTabPress(tabKey);
     }
@@ -47,8 +94,15 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
     setSideBarTab(null);
   };
 
+  const handleCloseExport = () => {
+    setExportVisible(false);
+    setSideBarTab(null);
+  };
+
   const currentActiveTab =
-    (sideBarVisible && sideBarTab === 'profile') || (notificationsVisible && sideBarTab === 'notifications')
+    (sideBarVisible && sideBarTab === 'profile') || 
+    (notificationsVisible && sideBarTab === 'notifications') ||
+    (exportVisible && sideBarTab === 'export')
       ? sideBarTab
       : activeTab;
 
@@ -102,6 +156,19 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
       >
         <View style={styles.panelContainer}>
           <Notifications />
+        </View>
+      </Modal>
+      {/* Export Modal */}
+      <Modal
+        isVisible={exportVisible}
+        animationIn="slideInRight"
+        animationOut="slideOutRight"
+        onBackdropPress={handleCloseExport}
+        style={{ margin: 0, justifyContent: 'flex-start', alignItems: 'flex-end' }}
+        backdropOpacity={0.4}
+      >
+        <View style={styles.panelContainer}>
+          <Export />
         </View>
       </Modal>
     </>
