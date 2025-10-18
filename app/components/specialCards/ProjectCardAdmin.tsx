@@ -136,17 +136,6 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
               </TouchableOpacity>
             </View>
           );
-        case 'finalizado':
-          return (
-            <TouchableOpacity
-              style={[styles.startBtn, { backgroundColor: '#5C5C60' }]}
-              onPress={onComplete}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="checkmark-circle" size={20} color="#fff" style={styles.btnIcon} />
-              <Text style={styles.startBtnText}>Terminar Proyecto</Text>
-            </TouchableOpacity>
-          );
         default:
           return null;
       }
