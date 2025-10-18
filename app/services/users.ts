@@ -1,5 +1,8 @@
 import supabase from "../lib/supabase";
 import { User } from "../types/user";
+import { FunctionsHttpError } from '@supabase/supabase-js';
+
+export type DeleteUserResult = { ok: boolean; reason?: string; message?: string; count?: number };
 
 /**
  * Get all users
@@ -121,5 +124,37 @@ export async function deleteUser(id: number): Promise<boolean> {
 	}
 
 	return true;
+}
+
+/**
+ * Elimina usuario en public.users y en auth.users (vía Edge Function con Service Role).
+ * - publicId: id bigint de la tabla public.users
+ * - authUserId: uuid de auth.users (supabase auth)
+ */
+export async function deleteUserEverywhere(publicId: number, authUserId: string): Promise<DeleteUserResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      body: { publicUserId: publicId, authUserId },
+    });
+
+    if (error) {
+      // Intentar leer el JSON de error (status 4xx/5xx) para obtener reason/message
+      const anyErr = error as any;
+      if (anyErr?.context && typeof anyErr.context.json === 'function') {
+        try {
+          const body = await anyErr.context.json();
+          return { ok: false, reason: body?.reason, message: body?.message, count: body?.count };
+        } catch {
+          // ignorar si no se pudo parsear
+        }
+      }
+      return { ok: false, message: (error as Error).message };
+    }
+
+    return { ok: !!data?.ok };
+  } catch (e: any) {
+    console.error('[Users] deleteUserEverywhere exception:', e);
+    return { ok: false, message: e?.message || 'unexpected error' };
+  }
 }
 

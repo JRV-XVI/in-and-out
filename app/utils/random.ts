@@ -82,9 +82,9 @@ export function generateToken(opts: TokenOptions = {}): string {
 }
 
 // Atajo específico para projects.token (4 chars, incluye símbolos/letras/números)
-export function generateProjectToken(): string {
+export function generateProjectToken(length: number = 4): string {
   return generateToken({
-    length: 4,
+    length: length,
     useUpper: true,
     useLower: true,
     useDigits: true,
