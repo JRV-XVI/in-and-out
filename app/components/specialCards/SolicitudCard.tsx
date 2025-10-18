@@ -9,6 +9,7 @@ export interface SolicitudCardProps {
   tipo: string;
   carga: string;
   voluntarios: string;
+  title: string;
   proyecto: string;
   direccion?: string;
   productos?: string[];
@@ -44,6 +45,7 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
   tipo,
   carga,
   voluntarios,
+  title,
   proyecto,
   direccion,
   productos = [],
@@ -75,13 +77,13 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
   };
 
   const handleAccept = () => {
-    if (matchingVehicles.length > 1) {
-      setShowVehicleModal(true);
-    } else if (matchingVehicles.length === 1) {
-      setSelectedVehicle(matchingVehicles[0]);
-      onAccept(matchingVehicles[0]);
+    if (matchingVehicles.length >= 1) {
+      // Selecciona automáticamente el primer vehículo compatible
+      const firstVehicle = matchingVehicles[0];
+      setSelectedVehicle(firstVehicle);
+      onAccept(firstVehicle);
       showAlert(
-        `Has aceptado la solicitud usando el vehículo ${matchingVehicles[0].plate}.`,
+        `Has aceptado la solicitud usando el vehículo ${firstVehicle.plate}.`,
         'success'
       );
     } else {
