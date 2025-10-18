@@ -13,10 +13,13 @@ const HomePageAdmin = () => {
   const [selectedView, setSelectedView] = useState<'paginaPrincipal' | 'proyectos' | 'usuarios'>('paginaPrincipal');
 
   const handleTabPress = (tab: string) => {
-    setActiveTab(tab);
-
-    if (tab == 'home') {
+    if (tab === 'home') {
+      // Cuando se presiona home, resetea a la vista principal
+      setActiveTab('home');
       setSelectedView('paginaPrincipal');
+    } else {
+      // Para otros tabs
+      setActiveTab(tab);
     }
   }
 

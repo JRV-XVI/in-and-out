@@ -71,7 +71,18 @@ const MyVehicles = ({ navigation }: any) => {
     fetchVehicles();
   }, [user]); // <-- refetch cuando cambie el usuario
 
-  const handleTabPress = (tab: string) => setActiveTab(tab);
+  const handleTabPress = (tab: string) => {
+    if (tab === 'home') {
+      // Cuando se presiona home, navegar de regreso a la página principal
+      navigation.navigate('HomePageResponsable' as never);
+    } else if (tab === 'vehicles') {
+      // Cuando se presiona vehicles, resetear a la vista de lista
+      setActiveTab('vehicles');
+      setSelectedView('list');
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   async function fetchVehicles() {
     if (!user) return;
@@ -138,7 +149,8 @@ const MyVehicles = ({ navigation }: any) => {
 
       console.log('✅ [CREATE] Vehículo creado:', JSON.stringify(created));
       setVehiculos(prev => [created, ...prev]);
-      setTipo('Carga chica');
+      setPeso('Carga chica');
+      setTipo('Normal');
       setPlate('');
       setPhoto('');
       setNotes('');

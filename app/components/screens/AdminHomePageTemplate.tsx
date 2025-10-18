@@ -42,12 +42,20 @@ const AdminHomePageTemplate = ({
 
   // Maneja el tab de historial desde aquí
   const handleTabBarPress = (tab: string) => {
-    setSelectedButton(null); // Deselecciona los botones primario/secundario
-    setSelectedTabBar(tab); // Selecciona el tabbar
-    if (tab === 'list') {
+    if (tab === 'home') {
+      // Cuando se presiona Home, resetea a la vista principal
+      setSelectedButton(null);
+      setShowHistory(false);
+      setSelectedTabBar(null);
+      onTabPress('home');
+    } else if (tab === 'list') {
+      setSelectedButton(null);
+      setSelectedTabBar(tab);
       setShowHistory(prev => !prev);
     } else {
+      setSelectedButton(null);
       setShowHistory(false);
+      setSelectedTabBar(tab);
       onTabPress(tab);
     }
   };

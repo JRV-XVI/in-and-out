@@ -69,16 +69,17 @@ const MainTabBar = ({ onTabPress, activeTab }: MainTabBarProps) => {
       setExportVisible(true);
       setSideBarTab('export');
     } else if (tabKey === 'vehicles') {
-      // Navegar a la página de vehículos
+      // Primero notificar al componente padre
+      onTabPress(tabKey);
+      // Luego navegar a la página de vehículos
       navigation.navigate('MyVehicles' as never);
     } else if (tabKey === 'home') {
-      // Para responsable, navegar a HomePageResponsable
-      if (user?.userType === 2) {
-        navigation.navigate('HomePageResponsable' as never);
-      } else {
-        // Para otros usuarios, usar el comportamiento normal
-        onTabPress(tabKey);
-      }
+      // Primero resetear el estado a través de onTabPress
+      onTabPress(tabKey);
+      
+      // NO navegar, solo resetear el estado de la pantalla actual
+      // La navegación causaba que se creara una nueva instancia de la pantalla
+      // en lugar de resetear la actual
     } else {
       onTabPress(tabKey);
     }

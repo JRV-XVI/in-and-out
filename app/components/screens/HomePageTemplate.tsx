@@ -39,31 +39,45 @@ const HomePageTemplate = ({
   const displayTitle = headerTitle ?? `Hola, ${user?.name ?? 'Usuario'}`;
 
   const handleTabBarPress = (tab: string) => {
-    setSelectedButton(null);
-    setSelectedTabBar(tab);
-    if (tab === 'list') {
+    if (tab === 'home') {
+      // Cuando se presiona Home, resetea a la vista principal
+      setSelectedButton(null);
+      setShowHistory(false);
+      setSelectedTabBar(null);
+      onTabPress('home');
+    } else if (tab === 'list') {
+      // Cuando se presiona list, resetea los botones y alterna history
+      setSelectedButton(null);
+      setSelectedTabBar(tab);
       setShowHistory(prev => !prev);
     } else {
+      // Para cualquier otro tab, resetea todo
+      setSelectedButton(null);
       setShowHistory(false);
+      setSelectedTabBar(tab);
       onTabPress(tab);
     }
   };
 
   const handlePrimaryAction = () => {
+    // Cuando se presiona primary, resetea history y tabs
     setSelectedButton('primary');
     setSelectedTabBar(null);
+    setShowHistory(false);
     onPrimaryAction();
   };
 
   const handleSecondaryAction = () => {
+    // Cuando se presiona secondary, resetea history y tabs
     setSelectedButton('secondary');
     setSelectedTabBar(null);
+    setShowHistory(false);
     onSecondaryAction();
   };
 
   const mainTabBarActive =
     selectedButton === 'primary' || selectedButton === 'secondary'
-      ? 'none'
+      ? 'none' // Cuando hay un botón primario/secundario seleccionado, ningún tab está activo
       : showHistory
       ? 'list'
       : selectedTabBar ?? activeTab;

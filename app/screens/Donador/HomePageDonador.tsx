@@ -149,7 +149,7 @@ const HomePageDonador = () => {
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
 
-    if (tab == 'home') {
+    if (tab === 'home') {
       setSelectedView('estadisticas');
     }
   };
