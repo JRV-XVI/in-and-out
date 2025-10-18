@@ -3,6 +3,8 @@ import { Text, View, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, Activ
 import UsersCard from '../../components/specialCards/UsersCard';
 import { User } from '../../types/user';
 import { useAllUsers } from '../../hooks/useUsers';
+import Input from '../../components/common/Input';
+import supabase from '../../lib/supabase';
 
 const UsersPageAdmin = () => {
     const [selectedView, setSelectedView] = useState<'lista' | 'token'>('lista');
@@ -38,7 +40,7 @@ const UsersPageAdmin = () => {
                     style={[styles.tabSwitchBtn, selectedView === 'token' ? styles.tabSwitchActive : null]}
                     onPress={() => setSelectedView('token')}
                 >
-                    <Text style={[styles.tabSwitchText, selectedView === 'token' ? styles.tabSwitchTextActive : null]}>Creación de token</Text>
+                    <Text style={[styles.tabSwitchText, selectedView === 'token' ? styles.tabSwitchTextActive : null]}>Creación de usuario</Text>
                 </TouchableOpacity>
             </View>
 
@@ -73,16 +75,88 @@ const UsersPageAdmin = () => {
                     )}
                 </>
             ) : (
-                // Token creation placeholder (empty logic for now)
-                <View style={{ padding: 20, alignItems: 'center' }}>
-                    <Text style={{ fontWeight: '700', marginBottom: 8 }}>Creación de token</Text>
-                    <Text style={{ color: '#666', textAlign: 'center', marginBottom: 16 }}>Aquí irá la interfaz para crear tokens (lógica vacía por ahora).</Text>
-                    <TouchableOpacity style={styles.primaryButton} onPress={() => { /* no-op until logic implemented */ }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>Crear token (demo)</Text>
-                    </TouchableOpacity>
-                </View>
+                // Envío de correo con enlace (Supabase) hacia Vercel
+                <EmailInviteSection />
             )}
         </SafeAreaView>
+    );
+};
+
+const EmailInviteSection = () => {
+    const [email, setEmail] = useState('');
+    const [sending, setSending] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+    const [isError, setIsError] = useState(false);
+
+    const redirectUrl = 'https://supabase-reset-auth-in-out.vercel.app/';
+
+    const sendEmail = async () => {
+        setMessage(null);
+        setIsError(false);
+
+        const trimmed = email.trim();
+        if (!trimmed) {
+            setMessage('Escribe un correo electrónico válido.');
+            setIsError(true);
+            return;
+        }
+        setSending(true);
+        try {
+            // Enviar link de acceso (passwordless). El usuario llegará a la página de Vercel.
+            const { error } = await supabase.auth.signInWithOtp({
+                email: trimmed,
+                options: { emailRedirectTo: redirectUrl },
+            });
+            if (error) {
+                setMessage(`Error al enviar el correo: ${error.message}`);
+                setIsError(true);
+            } else {
+                setMessage('Correo enviado. Pídele al usuario revisar su bandeja para continuar.');
+                setIsError(false);
+            }
+        } catch (e: any) {
+            setMessage('Ocurrió un error inesperado al enviar el correo.');
+            setIsError(true);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    return (
+        <View style={{ padding: 20, width: '100%' }}>
+            <Text style={{ fontWeight: '800', fontSize: 18, color: '#5C5C60', marginBottom: 6 }}>Enviar acceso por correo</Text>
+            <Text style={{ color: '#666', marginBottom: 16, textAlign: 'justify' }}>
+                Ingresa el correo electrónico del usuario. Le enviaremos un enlace seguro para que continúe el proceso en la página de verificación y establezca su contraseña.
+            </Text>
+
+            <Input
+                label="Correo electrónico"
+                placeholder="correo@dominio.com"
+                placeholderTextColor="#c0bbbbff"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+            />
+
+            <TouchableOpacity
+                style={[styles.primaryButton, { alignSelf: 'center', marginTop: 8, opacity: sending ? 0.6 : 1 }]}
+                onPress={sendEmail}
+                disabled={sending}
+            >
+                {sending ? (
+                    <ActivityIndicator color="#fff" />
+                ) : (
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>Enviar correo</Text>
+                )}
+            </TouchableOpacity>
+
+            {!!message && (
+                <Text style={{ marginTop: 12, textAlign: 'center', color: isError ? '#CE0E2D' : '#059669' }}>
+                    {message}
+                </Text>
+            )}
+        </View>
     );
 };
 

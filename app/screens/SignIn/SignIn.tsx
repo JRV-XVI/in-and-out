@@ -39,6 +39,9 @@ const SignIn = () => {
       showAlert("Inicio de sesión exitoso", "success");
       setTimeout(() => {
         switch (result.profile!.userType) {
+          case 0:
+            navigation.navigate('CompleteProfile' as never);
+            break;
           case 1:
             navigation.navigate('HomePageDonador' as never);
             break;
