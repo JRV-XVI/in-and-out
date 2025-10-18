@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Activación / Restablecer contraseña</title>
+		<meta name="color-scheme" content="light dark" />
+		<style>
+			:root {
+				--primary: #ce0e2d;
+				--bg: #f7f7f7;
+				--text: #333333;
+				--muted: #5c5c60;
+				--input-bg: #5c5c60;
+				--input-text: #ffffff;
+				--card-bg: #ffffff;
+				--error: #ce0e2d;
+				--success: #059669;
+			}
+
+			* { box-sizing: border-box; }
+
+			body {
+				margin: 0;
+				font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+					Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+				background: var(--bg);
+				color: var(--text);
+				min-height: 100vh;
+				display: grid;
+				place-items: center;
+				padding: 16px;
+			}
+
+			.container {
+				width: 100%;
+				max-width: 420px;
+			}
+
+			.card {
+				background: var(--card-bg);
+				border-radius: 20px;
+				padding: 24px;
+				box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+				border: 2px solid #e5e5e5;
+			}
+
+			.title {
+				font-size: 24px;
+				font-weight: 800;
+				color: var(--muted);
+				margin: 0 0 8px;
+			}
+
+			.desc {
+				color: var(--muted);
+				font-size: 15px;
+				line-height: 1.5;
+				margin: 0 0 18px;
+				text-align: justify;
+			}
+
+			label {
+				display: block;
+				font-weight: 700;
+				font-size: 14px;
+				color: #333;
+				margin-bottom: 6px;
+			}
+
+			.input {
+				width: 100%;
+				background: var(--input-bg);
+				color: var(--input-text);
+				border: none;
+				border-radius: 14px;
+				padding: 12px 16px;
+				font-size: 15px;
+				outline: none;
+			}
+
+			.input::placeholder { color: #c0bbbbff; }
+
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				width: 100%;
+				padding: 12px 16px;
+				border: none;
+				border-radius: 16px;
+				background: var(--primary);
+				color: #fff;
+				font-weight: 800;
+				font-size: 16px;
+				cursor: pointer;
+				transition: filter .2s ease;
+				margin-top: 14px;
+			}
+
+			.btn[disabled] { opacity: .6; cursor: not-allowed; }
+			.btn:hover:not([disabled]) { filter: brightness(0.95); }
+
+			.helper {
+				font-size: 12px;
+				color: #888;
+				margin-top: 10px;
+				text-align: center;
+			}
+
+			.msg {
+				margin-top: 14px;
+				font-size: 14px;
+				text-align: center;
+			}
+
+			.msg.error { color: var(--error); }
+			.msg.success { color: var(--success); }
+
+			.footer-note {
+				margin-top: 18px;
+				text-align: center;
+				font-size: 12px;
+				color: #888;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="container">
+			<div class="card">
+				<h1 class="title">Activar cuenta / Restablecer contraseña</h1>
+				<p class="desc">
+					Bienvenido. Este enlace proviene de tu correo para activar tu cuenta o
+					restablecer tu contraseña en ShulkerHouse. Por seguridad, debes establecer
+					tu nueva contraseña para continuar.
+				</p>
+
+				<label for="password">Nueva contraseña</label>
+				<input id="password" class="input" type="password" placeholder="Ingresa tu nueva contraseña" />
+
+				<button id="resetBtn" class="btn">
+					Actualizar contraseña
+				</button>
+
+				<p id="msg" class="msg" role="status" aria-live="polite"></p>
+				<p class="helper">Si el botón no funciona, verifica que abriste este enlace en el mismo dispositivo donde usas la app.</p>
+			</div>
+			<p class="footer-note">© ShulkerHouse — Seguridad y ayuda alimentaria</p>
+		</div>
+
+		<script type="module">
+			import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+			// TODO: reemplaza con tus credenciales de Supabase
+			const SUPABASE_URL = "https://ozehejpdgctuyxpyubim.supabase.co";
+			const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96ZWhlanBkZ2N0dXl4cHl1YmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NzUwNjQsImV4cCI6MjA3MzU1MTA2NH0.SQ9wAyWtUxan00rzUSCA6LllS36sHr8dixxug6YXWXs";
+
+			const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+			const $ = (id) => document.getElementById(id);
+			const msgEl = $("msg");
+			const btn = $("resetBtn");
+			const passEl = $("password");
+
+			// Supabase envía tokens de recuperación/confirmación en el hash (#)
+			const hashParams = new URLSearchParams(window.location.hash.substring(1));
+			const access_token = hashParams.get("access_token");
+			const refresh_token = hashParams.get("refresh_token");
+
+			if (!access_token) {
+				msgEl.textContent = "Enlace inválido o expirado.";
+				msgEl.className = "msg error";
+				btn.disabled = true;
+			}
+
+			btn.addEventListener("click", async () => {
+				const newPassword = passEl.value.trim();
+				if (!newPassword) {
+					msgEl.textContent = "Escribe una nueva contraseña";
+					msgEl.className = "msg error";
+					return;
+				}
+
+				btn.disabled = true;
+				msgEl.textContent = "Validando enlace...";
+				msgEl.className = "msg";
+
+				// 1) Establecer la sesión temporal usando los tokens del enlace
+				const { error: sessionError } = await supabase.auth.setSession({
+					access_token,
+					refresh_token,
+				});
+
+				if (sessionError) {
+					msgEl.textContent = "Error al validar el enlace.";
+					msgEl.className = "msg error";
+					btn.disabled = false;
+					return;
+				}
+
+				// 2) Actualizar la contraseña del usuario autenticado
+				msgEl.textContent = "Actualizando contraseña...";
+				const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+				if (error) {
+					msgEl.textContent = `Error: ${error.message}`;
+					msgEl.className = "msg error";
+					btn.disabled = false;
+					return;
+				}
+
+				msgEl.textContent = "✅ Contraseña actualizada correctamente. Ya puedes volver a la app.";
+				msgEl.className = "msg success";
+			});
+		</script>
+	</body>
+	</html>

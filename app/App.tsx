@@ -12,6 +12,7 @@ import LaunchScreenTwo from './screens/LaunchScreen/LaunchScreenTwo';
 import SignIn from './screens/SignIn/SignIn';
 import SignUp from './screens/SignUp/SignUp';
 import TokenSignUp from './screens/SignUp/TokenSignUp';
+import CompleteProfile from './screens/SignUp/CompleteProfile';
 import HomePageResponsable from './screens/Responsable/HomePageResponsable';
 import HomePageDonador from './screens/Donador/HomePageDonador';
 import HomePageAdmin from './screens/Admin/HomePageAdmin';
@@ -61,6 +62,7 @@ export default function App() {
                   <Stack.Screen name="SignIn" component={SignIn} />
                   <Stack.Screen name="SignUp" component={SignUp} />
                   <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
+                  <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
                   <Stack.Screen name="HomePageResponsable" component={HomePageResponsable} />
                   <Stack.Screen name="HomePageDonador" component={HomePageDonador} />
                   <Stack.Screen name="HomePageAdmin" component={HomePageAdmin} />
