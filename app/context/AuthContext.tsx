@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User as AuthUser } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import supabase from '../lib/supabase';
 import { User } from '../types/user';
 import { getUserProfile } from '../services/users';
+
+const USER_PROFILE_KEY = '@in-and-out:user-profile';
 
 interface AuthContextType {
   authUser: AuthUser | null;
@@ -34,24 +37,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
   useEffect(() => {
     console.log('🔧 AuthProvider inicializándose...');
     
-    // Obtener sesión inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('📱 Sesión inicial:', session?.user?.email || 'No hay sesión');
-      setAuthUser(session?.user ?? null);
-      if (session?.user) {
-        console.log('✅ Usuario autenticado (sesión persistente), cargando perfil...');
-        loadUserProfile(session.user.id);
-      } else {
-        console.log('❌ No hay sesión activa');
+    let isMounted = true;
+
+    const loadPersistedProfile = async () => {
+      try {
+        const storedProfile = await AsyncStorage.getItem(USER_PROFILE_KEY);
+        if (storedProfile) {
+          const parsedProfile: User = JSON.parse(storedProfile);
+          setUserProfile(parsedProfile);
+        }
+      } catch (error) {
+        console.warn('⚠️ No se pudo recuperar el perfil persistido:', error);
+      }
+    };
+
+    const initializeSession = async () => {
+      setLoading(true);
+
+      try {
+        await loadPersistedProfile();
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
+
+        console.log('📱 Sesión inicial:', session?.user?.email || 'No hay sesión');
+        setAuthUser(session?.user ?? null);
+
+        if (session?.user) {
+          console.log('✅ Usuario autenticado (sesión persistente), cargando perfil...');
+          await loadUserProfile(session.user.id);
+        } else {
+          console.log('❌ No hay sesión activa');
+          setUserProfile(null);
+          await AsyncStorage.removeItem(USER_PROFILE_KEY);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('❌ Error obteniendo sesión inicial:', error);
         setLoading(false);
       }
-      setIsInitialLoad(false);
-    });
+    };
+
+    initializeSession();
 
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -67,23 +100,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setAuthUser(session?.user ?? null);
         
-        if (session?.user && event === 'SIGNED_IN') {
-          console.log('✅ SIGNED_IN: Cargando perfil...');
+        if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          console.log(`✅ ${event}: Cargando perfil...`);
+          setLoading(true);
           await loadUserProfile(session.user.id);
         } else if (!session?.user && event === 'SIGNED_OUT') {
           console.log('❌ Sesión cerrada');
           setUserProfile(null);
+          await AsyncStorage.removeItem(USER_PROFILE_KEY);
           setLoading(false);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (authUserId: string) => {
     console.log('📥 Cargando perfil para authUserId:', authUserId);
-    setLoading(true);
     try {
       const profile = await getUserProfile(authUserId);
       console.log('✅ Perfil cargado exitosamente:', {
@@ -92,6 +129,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userType: profile?.userType
       });
       setUserProfile(profile);
+      if (profile) {
+        await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
+      } else {
+        await AsyncStorage.removeItem(USER_PROFILE_KEY);
+      }
     } catch (error) {
       console.error('❌ Error loading user profile:', error);
     } finally {
@@ -102,6 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    await AsyncStorage.removeItem(USER_PROFILE_KEY);
   };
 
   const value = {
