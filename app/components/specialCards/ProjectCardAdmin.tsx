@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
@@ -15,8 +15,8 @@ interface ProjectCardProps {
 
 const statusConfig = {
   cancelado: { label: 'Cancelado', color: '#CE0E2D', icon: 'close-circle-outline' },
-  confirmacionAdmin: { label: 'Confirmación de administrador', color: '#888', icon: 'time-outline' },
-  confirmacion: { label: 'Confirmación', color: '#888', icon: 'time-outline' },
+  confirmacionAdmin: { label: 'Confirmación - administrador', color: '#888', icon: 'time-outline' },
+  confirmacion: { label: 'Confirmación - responsable', color: '#888', icon: 'time-outline' },
   en_recoleccion: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
   recolectado: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   finalizado: { label: 'Finalizado', color: '#059669', icon: 'checkmark-circle' },
@@ -90,6 +90,9 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [localProjectState, setLocalProjectState] = useState<number | null | undefined>(project.projectState);
+  const [volunteersCount, setVolunteersCount] = useState<number>(Number(project.volunteers ?? 0) || 0);
+  const [updatingVolunteers, setUpdatingVolunteers] = useState(false);
+  const ignoreToggleRef = useRef(false);
   
   // Extract values from project
   const type = getProjectType(project.projectType);
@@ -103,7 +106,8 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
   
   const isEntrada = type === 'entrada';
   const currentStatus = statusConfig[status];
-  const currentStatusIndex = statusOrder.indexOf(status);
+  // when status is the admin confirmation variant, treat it as the first step in the progress
+  const currentStatusIndex = status === 'confirmacionAdmin' ? 0 : statusOrder.indexOf(status);
 
   // Función para obtener el botón según el estado
     const renderActionButton = () => {
@@ -151,9 +155,12 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
       // Handler: cambia estado 1 -> 2 usando el servicio updateProject
       const handleConfirmProject = async () => {
         try {
+          // prevent outer toggle when pressing this button
+          ignoreToggleRef.current = true;
+          setTimeout(() => { ignoreToggleRef.current = false; }, 400);
           setConfirming(true);
-          // call service to update projectState to 2
-          const updated = await updateProject(String(project.id), { projectState: 2 });
+          // call service to update projectState to 2 and persist volunteersCount
+          const updated = await updateProject(String(project.id), { projectState: 2, volunteers: volunteersCount });
           if (!updated) {
             Alert.alert('Error', 'No se pudo confirmar el proyecto. Intenta de nuevo.');
             return;
@@ -173,6 +180,9 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
     // Handler: cancela el proyecto (projectState -> 0)
     const handleCancelProject = async () => {
       try {
+        // prevent outer toggle when pressing this button
+        ignoreToggleRef.current = true;
+        setTimeout(() => { ignoreToggleRef.current = false; }, 400);
         setCancelling(true);
         const updated = await updateProject(String(project.id), { projectState: 0 });
         if (!updated) {
@@ -188,6 +198,37 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
       }
     };
 
+    // Volunteers increment/decrement handlers (persist immediately)
+    const updateVolunteers = async (newCount: number) => {
+      // clamp to >= 0
+      if (newCount < 0) newCount = 0;
+      const previous = volunteersCount;
+      try {
+        // prevent outer toggle when pressing this control
+        ignoreToggleRef.current = true;
+        setTimeout(() => { ignoreToggleRef.current = false; }, 300);
+        setUpdatingVolunteers(true);
+        setVolunteersCount(newCount); // optimistic
+        const updated = await updateProject(String(project.id), { volunteers: newCount });
+        if (!updated) {
+          setVolunteersCount(previous);
+          Alert.alert('Error', 'No se pudo actualizar el número de voluntarios.');
+          return;
+        }
+        // ensure sync with server value if returned
+        setVolunteersCount(Number(updated.volunteers ?? newCount));
+      } catch (e) {
+        console.error('[ProjectCardAdmin] update volunteers error:', e);
+        setVolunteersCount(previous);
+        Alert.alert('Error', 'Ocurrió un error al actualizar voluntarios.');
+      } finally {
+        setUpdatingVolunteers(false);
+      }
+    };
+
+    const handleIncVolunteers = () => updateVolunteers(volunteersCount + 1);
+    const handleDecVolunteers = () => updateVolunteers(Math.max(0, volunteersCount - 1));
+
   return (
     <TouchableOpacity
       style={[
@@ -195,7 +236,7 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
         expanded && styles.cardExpanded,
       ]}
       activeOpacity={0.95}
-      onPress={() => setExpanded(!expanded)}
+      onPress={() => { if (!ignoreToggleRef.current) setExpanded(!expanded); }}
     >
       {/* Header */}
       <View style={styles.headerContainer}>
@@ -242,7 +283,10 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
             <Text style={styles.sectionTitle}>Progreso de Viaje</Text>
             <View style={styles.progressBar}>
               {statusOrder.map((key, idx) => {
-                const stepConfig = statusConfig[key as keyof typeof statusConfig];
+                // if the project is awaiting admin confirmation, show the first step using the admin label/color
+                const stepConfig = (key === 'confirmacion' && status === 'confirmacionAdmin')
+                  ? statusConfig['confirmacionAdmin']
+                  : statusConfig[key as keyof typeof statusConfig];
                 const isActive = idx <= currentStatusIndex;
                 const isCurrent = idx === currentStatusIndex;
                 return (
@@ -276,7 +320,9 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
             </View>
             <View style={styles.progressLabels}>
               {statusOrder.map((key, idx) => {
-                const stepConfig = statusConfig[key as keyof typeof statusConfig];
+                const stepConfig = (key === 'confirmacion' && status === 'confirmacionAdmin')
+                  ? statusConfig['confirmacionAdmin']
+                  : statusConfig[key as keyof typeof statusConfig];
                 const isCurrent = idx === currentStatusIndex;
                 return (
                   <View key={key} style={styles.progressLabelContainer}>
@@ -326,6 +372,37 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
                 <Text style={styles.detailText}>{vehicleType}</Text>
               </View>
             </View>
+            {/* Volunteers counter: visible to admin while project is in confirmacionAdmin */}
+            {status === 'confirmacionAdmin' && (
+              <View style={[styles.detailRow, { alignItems: 'center' }]}>
+                <Ionicons name="people-outline" size={20} color="#CE0E2D" />
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Voluntarios asignados</Text>
+                  <View style={styles.volunteersRow}>
+                    <TouchableOpacity style={styles.volButton} onPress={handleDecVolunteers} disabled={updatingVolunteers}>
+                      <Text style={styles.volButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <View style={styles.volCountBox}>
+                      <Text style={styles.volCountText}>{volunteersCount}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.volButton} onPress={handleIncVolunteers} disabled={updatingVolunteers}>
+                      <Text style={styles.volButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* When project has progressed beyond admin confirmation show volunteers as text */}
+            {localProjectState && localProjectState > 1 && (
+              <View style={styles.detailRow}>
+                <Ionicons name="people-circle" size={20} color="#CE0E2D" />
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Voluntarios</Text>
+                  <Text style={styles.detailText}>{volunteersCount}</Text>
+                </View>
+              </View>
+            )}
             <View style={styles.detailRow}>
               <Ionicons name="cube-outline" size={20} color="#CE0E2D" />
               <View style={styles.detailContent}>
@@ -596,6 +673,36 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  volunteersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  volButton: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  volButtonText: {
+    fontSize: 25,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  volCountBox: {
+    minWidth: 48,
+    marginHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  volCountText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
   },
   btnIcon: {
     marginRight: 8,

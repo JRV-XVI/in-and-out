@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
 	tabText: { color: '#fff', fontWeight: '700' },
 	tabTextActive: { color: '#ce0e2d' },
 	tabTextMuted: { color: '#8b8b8b' },
-	subTabsWrap: { flexDirection: 'row', marginTop: 12, marginHorizontal: 18, alignItems: 'center' },
+	subTabsWrap: { flexDirection: 'row', marginTop: 12, marginHorizontal: 18, alignItems: 'center', marginBottom: 20},
 	subTab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 18, backgroundColor: '#f2f2f2', marginRight: 8 },
 	subTabActive: { backgroundColor: '#fff', elevation: 2 },
 	subTabNeutral: { backgroundColor: '#e5e5e5' },
