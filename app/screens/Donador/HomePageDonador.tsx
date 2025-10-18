@@ -299,6 +299,7 @@ const HomePageDonador = () => {
                 direction: direccion,
                 photo: evidencia?.uri || null,
                 projectType: 1, // 1 para donación
+                volunteers: 0,
                 projectState: 1, // No confirmado
                 creator_id: userProfile?.id?.toString() || null, // ID numérico de la tabla users
               };
