@@ -111,7 +111,7 @@ const EmailInviteSection = () => {
                 setMessage(`Error al enviar el correo: ${error.message}`);
                 setIsError(true);
             } else {
-                setMessage('Correo enviado. Pídele al usuario revisar su bandeja para continuar.');
+                setMessage('Correo enviado.');
                 setIsError(false);
             }
         } catch (e: any) {
@@ -124,9 +124,9 @@ const EmailInviteSection = () => {
 
     return (
         <View style={{ padding: 20, width: '100%' }}>
-            <Text style={{ fontWeight: '800', fontSize: 18, color: '#5C5C60', marginBottom: 6 }}>Enviar acceso por correo</Text>
+            <Text style={{ fontWeight: '800', fontSize: 18, color: '#5C5C60', marginBottom: 6 }}>Enviar invitación por correo</Text>
             <Text style={{ color: '#666', marginBottom: 16, textAlign: 'justify' }}>
-                Ingresa el correo electrónico del usuario. Le enviaremos un enlace seguro para que continúe el proceso en la página de verificación y establezca su contraseña.
+               Le enviaremos un enlace seguro para que continúe el proceso en la página de verificación y establezca su nueva contraseña.
             </Text>
 
             <Input

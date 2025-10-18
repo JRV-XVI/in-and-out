@@ -11,7 +11,7 @@ interface DonationCardProps {
 
 const statusConfig = {
   0: { label: 'Cancelado', color: '#CE0E2D', icon: 'close-circle-outline' },
-  1: { label: 'Pendiente por confirmar', color: '#888', icon: 'time-outline' },
+  1: { label: 'Pendiente', color: '#888', icon: 'time-outline' },
   2: { label: 'Confirmado', color: '#3B82F6', icon: 'checkmark-circle-outline' },
   3: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
   4: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
@@ -138,6 +138,35 @@ const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
           {/* Barra de Progreso del Estatus */}
           <View style={styles.progressSection}>
             <Text style={styles.sectionTitle}>Progreso de Donación</Text>
+            
+            {/* Labels superiores (pares) */}
+            <View style={styles.progressLabelsTop}>
+              {[1, 2, 3, 4, 5].map((step, idx) => {
+                const stepConfig = statusConfig[step as keyof typeof statusConfig];
+                const isCurrent = step === statusProgress;
+                const isEven = idx % 2 !== 0; // índice 1, 3 (segundo, cuarto)
+                
+                return (
+                  <View key={`top-${step}`} style={styles.progressLabelContainer}>
+                    {isEven ? (
+                      <Text
+                        style={[
+                          styles.progressLabel,
+                          isCurrent && { color: stepConfig.color, fontWeight: 'bold' },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {stepConfig.label}
+                      </Text>
+                    ) : (
+                      <Text style={styles.progressLabelSpacer}> </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Barra de progreso */}
             <View style={styles.progressBar}>
               {[1, 2, 3, 4, 5].map((step, idx) => {
                 const stepConfig = statusConfig[step as keyof typeof statusConfig];
@@ -173,21 +202,30 @@ const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
                 );
               })}
             </View>
-            <View style={styles.progressLabels}>
-              {[1, 2, 3, 4, 5].map((step) => {
+
+            {/* Labels inferiores (impares) */}
+            <View style={styles.progressLabelsBottom}>
+              {[1, 2, 3, 4, 5].map((step, idx) => {
                 const stepConfig = statusConfig[step as keyof typeof statusConfig];
                 const isCurrent = step === statusProgress;
+                const isOdd = idx % 2 === 0; // índice 0, 2, 4 (primero, tercero, quinto)
+                
                 return (
-                  <Text
-                    key={step}
-                    style={[
-                      styles.progressLabel,
-                      isCurrent && { color: stepConfig.color, fontWeight: 'bold' },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {stepConfig.label.split(' ')[0]}
-                  </Text>
+                  <View key={`bottom-${step}`} style={styles.progressLabelContainer}>
+                    {isOdd ? (
+                      <Text
+                        style={[
+                          styles.progressLabel,
+                          isCurrent && { color: stepConfig.color, fontWeight: 'bold' },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {stepConfig.label}
+                      </Text>
+                    ) : (
+                      <Text style={styles.progressLabelSpacer}> </Text>
+                    )}
+                  </View>
                 );
               })}
             </View>
@@ -409,29 +447,38 @@ const styles = StyleSheet.create({
   },
   progressSection: {
     padding: 16,
+    paddingHorizontal: 24,
     backgroundColor: '#fff',
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  progressLabelsTop: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginBottom: 8,
+    paddingHorizontal: 10,
   },
   progressBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 110,
   },
   progressStep: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
   },
   progressDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#D0D0D0',
     justifyContent: 'center',
     alignItems: 'center',
@@ -446,20 +493,32 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   progressLine: {
-    flex: 1,
+    width: 40,
     height: 3,
     backgroundColor: '#D0D0D0',
-    marginHorizontal: 4,
   },
-  progressLabels: {
+  progressLabelsBottom: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 10,
+  },
+  progressLabelContainer: {
+    width: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progressLabel: {
     fontSize: 9,
     color: '#888',
     textAlign: 'center',
-    flex: 1,
+    lineHeight: 11,
+  },
+  progressLabelSpacer: {
+    fontSize: 10,
+    color: 'transparent',
+    height: 12,
   },
   detailsSection: {
     padding: 16,

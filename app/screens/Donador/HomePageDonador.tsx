@@ -74,6 +74,17 @@ const HomePageDonador = () => {
     }
   }, [selectedView, userProfile?.id]);
 
+  // Calcular automáticamente el peso total cuando cambien los artículos
+  // Suma los kg de todos los artículos y convierte a toneladas (1t = 1000kg)
+  useEffect(() => {
+    const totalKg = articulos.reduce((sum, articulo) => {
+      const pesoKg = parseFloat(articulo.peso) || 0;
+      return sum + pesoKg;
+    }, 0);
+    const totalToneladas = totalKg / 1000;
+    setPesoTotal(totalToneladas.toFixed(3)); // 3 decimales para toneladas
+  }, [articulos]);
+
   const loadStatistics = async () => {
     if (!userProfile?.id) {
       console.log('No hay userProfile.id disponible para estadísticas');
@@ -189,7 +200,7 @@ const HomePageDonador = () => {
     }
 
     if (!pesoTotal || parseFloat(pesoTotal) <= 0) {
-      setAlertMessage('El peso total debe ser mayor a 0');
+      setAlertMessage('Debes agregar al menos un artículo con peso válido');
       setAlertType('error');
       setShowAlert(true);
       return false;
@@ -456,11 +467,13 @@ const HomePageDonador = () => {
 
             {/* Peso total */}
             <Input
-              label="Peso total (kg)"
-              placeholder="0.0"
+              label="Toneladas totales (1t = 1000kg)"
+              placeholder="0.000 t"
               keyboardType="decimal-pad"
-              value={pesoTotal}
+              value={pesoTotal + " t"}
               onChangeText={setPesoTotal}
+              editable={false}
+              containerStyle={styles.disabledInputContainer}
             />
 
             {/* Lista de artículos */}
@@ -488,7 +501,7 @@ const HomePageDonador = () => {
                   />
                   
                   <Input
-                    placeholder="Peso (kg)"
+                    placeholder="Kilogramos (kg)"
                     keyboardType="decimal-pad"
                     value={articulo.peso}
                     onChangeText={(valor) => actualizarArticulo(articulo.id, 'peso', valor)}
@@ -649,6 +662,9 @@ const styles = StyleSheet.create({
   articuloInput: {
     marginBottom: 8,
   },
+  disabledInputContainer: {
+    opacity: 0.8,
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -701,6 +717,7 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
+    color: '#FFFFFF',
   },
   uploadButton: {
     backgroundColor: '#5C5C60',
