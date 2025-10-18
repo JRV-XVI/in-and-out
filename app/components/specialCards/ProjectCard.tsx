@@ -365,21 +365,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <Ionicons name="key-outline" size={20} color="#CE0E2D" />
                 <Text style={styles.tokenTitle}>Token de identificación</Text>
               </View>
+              <Text style={styles.tokenInstructions}>
+                Solicita el token al donador para confirmar la recolección
+              </Text>
               <View style={styles.tokenInputContainer}>
                 <Token value={tokenInput} onChange={setTokenInput} />
               </View>
-              {tokens && tokens.length > 0 && (
-                <View style={styles.tokenList}>
-                  <Text style={styles.tokenListLabel}>Tokens registrados:</Text>
-                  <View style={styles.tokenItemsRow}>
-                    {tokens.map((t, idx) => (
-                      <View key={idx} style={styles.tokenChip}>
-                        <Text style={styles.tokenText}>#{t}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
             </View>
           )}
           {renderActionButton()}
@@ -591,6 +582,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginLeft: 8,
+  },
+  tokenInstructions: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   tokenInputContainer: {
     alignItems: 'center',

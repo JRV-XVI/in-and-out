@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-type OrderOption = 'Completados' | 'Ascendente' | 'Descendente';
+type OrderOption = 'Ascendente' | 'Descendente';
 type TipoOption = 'Todas' | 'Entrada' | 'Salida';
 
 interface FilterProps {
@@ -13,13 +13,10 @@ interface FilterProps {
   onTipoChange?: (value: TipoOption) => void;
 }
 
-const orderOptions: OrderOption[] = ['Completados', 'Ascendente', 'Descendente'];
+const orderOptions: OrderOption[] = ['Ascendente', 'Descendente'];
 const tipoOptions: TipoOption[] = ['Todas', 'Entrada', 'Salida'];
 
 const getIcon = (active: string) => {
-  if (active === 'Completados') {
-    return <MaterialCommunityIcons name="filter-variant" size={22} color="#CE0E2D" />;
-  }
   if (active === 'Ascendente') {
     return <MaterialCommunityIcons name="sort-ascending" size={22} color="#CE0E2D" />;
   }
@@ -31,7 +28,7 @@ const getIcon = (active: string) => {
 
 const Filter: React.FC<FilterProps> = ({
   label = 'Ordenar por:',
-  activeOrder = 'Completados',
+  activeOrder = 'Ascendente',
   onOrderChange,
   tipoActive = 'Todas',
   onTipoChange,

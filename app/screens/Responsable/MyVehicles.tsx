@@ -261,10 +261,18 @@ const MyVehicles = ({ navigation }: any) => {
           }}
           showsVerticalScrollIndicator={false}
         >
+          {/* ----- CARGA MÁXIMA ----- */}
           <View style={styles.tipoRow}>
-            {/* ----- CARGA MÁXIMA ----- */}
             <Text style={styles.cascadaLabel}>Carga máxima</Text>
-            <TouchableOpacity style={styles.tipoBtn} onPress={() => setPesoDropdown(v => !v)}>
+            <TouchableOpacity
+              style={styles.tipoBtn}
+              onPress={() => {
+                setPesoDropdown(v => {
+                  if (!v) setTipoDropdown(false); // close tipoDropdown if opening pesoDropdown
+                  return !v;
+                });
+              }}
+            >
               {getTipoIcon(peso)}
               <Text style={styles.tipoBtnText}>{peso}</Text>
               <Ionicons
@@ -292,10 +300,20 @@ const MyVehicles = ({ navigation }: any) => {
                 ))}
               </View>
             )}
+          </View>
 
-            {/* ----- TIPO DE CARGA ----- */}
-            <Text style={[styles.cascadaLabel, { marginTop: 16 }]}>Tipo de carga</Text>
-            <TouchableOpacity style={styles.tipoBtn} onPress={() => setTipoDropdown(v => !v)}>
+          {/* ----- TIPO DE CARGA ----- */}
+          <View style={styles.tipoRow}>
+            <Text style={styles.cascadaLabel}>Tipo de carga</Text>
+            <TouchableOpacity
+              style={styles.tipoBtn}
+              onPress={() => {
+                setTipoDropdown(v => {
+                  if (!v) setPesoDropdown(false);
+                  return !v;
+                });
+              }}
+            >
               <MaterialCommunityIcons
                 name={
                   tipo === 'Normal'
