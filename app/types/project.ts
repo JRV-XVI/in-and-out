@@ -7,7 +7,7 @@ export interface Project {
 	projectState?: number | null;
 	token?: string | null;         // tokens de 4 chars (letras/números/símbolos)
 	projectType?: number | null;
-	creator_id?: { id: string | null; name: string | null};
+	creator_id?: string | null;
 	weight?: number | null;
 	loadType?: number | null;
 	foodList?: any | null;         // json column — puedes cambiar a Record<string, unknown> si lo prefieres
