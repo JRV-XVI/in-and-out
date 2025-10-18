@@ -155,9 +155,15 @@ const HomePageResponsable = () => {
   }, [proyectosCompatibles, userProfile?.id, sendLocalNotification]);
 
   const handleTabPress = (tab: string) => {
-    setActiveTab(tab as any);
-    if (tab === 'home') setSelectedView('Abiertas');
-    else setSelectedView(tab as 'Entrada' | 'Salida');
+    if (tab === 'home') {
+      // Cuando se presiona home, resetea a la vista de "Abiertas"
+      setActiveTab('home' as any);
+      setSelectedView('Abiertas');
+    } else {
+      // Para otros tabs (Entrada, Salida), actualiza el view
+      setActiveTab(tab as any);
+      setSelectedView(tab as 'Entrada' | 'Salida');
+    }
   };
 
   const handleProjectStateChange = async (projectId: string, newState: number) => {
