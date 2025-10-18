@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   volButton: {
     backgroundColor: '#E5E7EB',
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     paddingVertical: 2,
     borderRadius: 8,
   },

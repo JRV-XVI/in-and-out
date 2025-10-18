@@ -40,7 +40,7 @@ const HomePageAdmin = () => {
     return () => { mounted = false; };
   }, []);
 
-  const finalizedProjects = allProjects ? allProjects.filter(p => p.projectState === 5).length : 0;
+  const finalizedProjects = allProjects ? allProjects.filter(p => p.projectState != null && p.projectState > 4).length : 0;
 
   // Load all users
   const { users: allUsers } = useAllUsers();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ActivityIndicator } from 'react-native';
 import ProjectCardAdmin from '../../components/specialCards/ProjectCardAdmin';
+import RefreshButton from '../../components/common/RefreshButton';
 import { Project } from '../../types/project';
 import { getAllProjects } from '../../services/projects';
 
@@ -47,12 +48,15 @@ const ProyectPageAdmin = () => {
 	return (
 		<SafeAreaView style={styles.safe}>
 			<View style={styles.subTabsWrap}>
-				<TouchableOpacity style={[styles.subTab, activeTab === 'activos' ? styles.subTabActive : null]} onPress={() => setActiveTab('activos')}>
-					<Text style={[styles.subTabText, activeTab === 'activos' ? styles.subTabTextActive : null]}>Activos ({activeCount})</Text>
-				</TouchableOpacity>
-				<TouchableOpacity style={[styles.subTab, activeTab === 'pendientes' ? styles.subTabActive : null]} onPress={() => setActiveTab('pendientes')}>
-					<Text style={[styles.subTabText, activeTab === 'pendientes' ? styles.subTabTextActive : null]}>Pendientes ({pendingCount})</Text>
-				</TouchableOpacity>
+				<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+					<TouchableOpacity style={[styles.subTab, activeTab === 'activos' ? styles.subTabActive : null]} onPress={() => setActiveTab('activos')}>
+						<Text style={[styles.subTabText, activeTab === 'activos' ? styles.subTabTextActive : null]}>Activos ({activeCount})</Text>
+					</TouchableOpacity>
+					<TouchableOpacity style={[styles.subTab, activeTab === 'pendientes' ? styles.subTabActive : null]} onPress={() => setActiveTab('pendientes')}>
+						<Text style={[styles.subTabText, activeTab === 'pendientes' ? styles.subTabTextActive : null]}>Pendientes ({pendingCount})</Text>
+					</TouchableOpacity>
+				</View>
+				<RefreshButton onRefresh={handleRefresh} />
 			</View>
 
 			<FlatList
