@@ -37,6 +37,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Flag para evitar cargas duplicadas durante la inicialización
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   useEffect(() => {
     console.log('🔧 AuthProvider inicializándose...');
     
@@ -47,7 +51,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const storedProfile = await AsyncStorage.getItem(USER_PROFILE_KEY);
         if (storedProfile) {
           const parsedProfile: User = JSON.parse(storedProfile);
-          setUserProfile(parsedProfile);
+          console.log('✅ Perfil persistido restaurado:', parsedProfile.email);
+          if (isMounted) {
+            setUserProfile(parsedProfile);
+          }
         }
       } catch (error) {
         console.warn('⚠️ No se pudo recuperar el perfil persistido:', error);
@@ -55,11 +62,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     const initializeSession = async () => {
-      setLoading(true);
-
       try {
+        console.log('🔍 Inicializando sesión...');
+        
+        // Cargar el perfil persistido primero
         await loadPersistedProfile();
 
+        // Obtener la sesión actual
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -78,12 +87,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           await AsyncStorage.removeItem(USER_PROFILE_KEY);
           setLoading(false);
         }
+        
+        if (isMounted) {
+          setIsInitialized(true);
+        }
       } catch (error) {
         console.error('❌ Error obteniendo sesión inicial:', error);
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsInitialized(true);
+        }
       }
     };
 
+    // Ejecutar inicialización
     initializeSession();
 
     // Escuchar cambios de autenticación
@@ -92,11 +109,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
         
         // Ignorar TOKEN_REFRESHED para evitar doble carga
-        // Solo procesar SIGNED_IN, SIGNED_OUT, etc.
         if (event === 'TOKEN_REFRESHED') {
           console.log('⏭️ Ignorando TOKEN_REFRESHED (evitar doble carga)');
           return;
         }
+        
+        // Si no se ha inicializado y es INITIAL_SESSION, dejar que la inicialización maneje esto
+        if (!isInitialized && event === 'INITIAL_SESSION') {
+          console.log('⏸️ INITIAL_SESSION detectado, pero la inicialización ya está en progreso');
+          return;
+        }
+        
+        if (!isMounted) return;
         
         setAuthUser(session?.user ?? null);
         
@@ -117,7 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isInitialized]);
 
   const loadUserProfile = async (authUserId: string) => {
     console.log('📥 Cargando perfil para authUserId:', authUserId);
@@ -143,8 +167,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    console.log('🚪 Cerrando sesión...');
     await supabase.auth.signOut();
     await AsyncStorage.removeItem(USER_PROFILE_KEY);
+    setAuthUser(null);
+    setUserProfile(null);
+    console.log('✅ Sesión cerrada correctamente');
   };
 
   const value = {
