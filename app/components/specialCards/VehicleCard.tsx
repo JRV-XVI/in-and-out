@@ -38,8 +38,26 @@ export default function VehicleCard({ data, onDelete }) {
         <View style={styles.info}>
           <Text style={styles.text}>
             <Text style={styles.bold}>Tipo de carga: </Text>
-            {data.loadType}
+            {data.loadType === 1
+              ? 'Normal'
+              : data.loadType === 2
+              ? 'Delicada'
+              : data.loadType === 3
+              ? 'Refrigerada'
+              : 'Desconocida'}
           </Text>
+
+          <Text style={styles.text}>
+            <Text style={styles.bold}>Peso de carga: </Text>
+            {data.weightType === 1
+              ? 'Chica'
+              : data.weightType === 2
+              ? 'Mediana'
+              : data.weightType === 3
+              ? 'Grande'
+              : 'Desconocido'}
+          </Text>
+
 
           <Text style={styles.text}>
             <Text style={styles.bold}>En proyecto: </Text>
@@ -54,7 +72,9 @@ export default function VehicleCard({ data, onDelete }) {
               style={styles.estadoSwitch}
               trackColor={{ false: '#ccc', true: '#C8102E' }}
               thumbColor={isAvailable ? '#fff' : '#f4f3f4'}
+              disabled={data.isInProject} 
             />
+
           </View>
         </View>
 
