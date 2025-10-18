@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import type { NavigationProp } from '@react-navigation/native';
-import { useUser } from '../../context/UserContext'; 
+import { useUser } from '../../context/UserContext';
+import { useAuthContext } from '../../context/AuthContext';
 
 type SideBarProps = {
   navigation: NavigationProp<any>;
@@ -10,6 +11,19 @@ type SideBarProps = {
 
 const SideBar = ({ navigation }: SideBarProps) => {
   const { user } = useUser();
+  const { signOut } = useAuthContext();
+
+  const handleLogout = async () => {
+    try {
+      console.log('🚪 Iniciando logout desde SideBar...');
+      await signOut();
+      console.log('✅ Logout completado');
+      navigation?.navigate('LaunchScreen' as never);
+    } catch (error) {
+      console.error('❌ Error durante logout:', error);
+      Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta de nuevo.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -46,7 +60,7 @@ const SideBar = ({ navigation }: SideBarProps) => {
       {/* Cerrar sesión */}
       <TouchableOpacity
         style={styles.logoutSection}
-        onPress={() => navigation.navigate('LaunchScreen')}
+        onPress={handleLogout}
       >
         <MaterialIcons name="logout" size={24} color="#fff" style={styles.menuIcon} />
         <Text style={styles.logoutText}>Cerrar Sesión</Text>
