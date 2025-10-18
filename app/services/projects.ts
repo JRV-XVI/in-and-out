@@ -190,6 +190,7 @@ export async function updateProject(
 		console.error("Error actualizando proyecto:", error);
 		return null;
 	}
+    
 
 	return data as Project;
 }
@@ -198,6 +199,7 @@ export async function updateProject(
  * Delete project
  */
 export async function deleteProject(id: string): Promise<boolean> {
+    // Aqui hace falta que el vehiculo linkeado sea liberado previamente (poner isInProject en false)
 	const { error } = await supabase.from("project").delete().eq("id", id);
 
 	if (error) {
@@ -229,7 +231,7 @@ export async function getCompatibleValidatedProjectsForUser(userId: number): Pro
     // 2) Filtrar: disponibles (isAvailable === true) y NO ocupados
     const checks = await Promise.all(
         vehicles.map(async (v) => {
-            const busy = await isVehicleAssignedToActiveProject(v.plate);
+            const busy = v.isInProject;
             return { v, busy, available: v.isAvailable === true };
         })
     );
@@ -295,64 +297,62 @@ function weightToType(weight?: number | null): 1 | 2 | 3 | null {
  * del usuario (por rangos de peso). Devuelve el proyecto actualizado o null si no hay vehículo compatible.
  */
 export async function acceptProjectWithFirstCompatibleVehicle(projectId: string, userId: number): Promise<Project | null> {
-  console.log('[Projects] acceptProjectWithFirstCompatibleVehicle =>', { projectId, userId });
-  // 1) Obtener el proyecto
-  const current = await getProjectById(projectId);
-  if (!current) return null;
-  console.log('[Projects] current project:', JSON.stringify(current));
+    console.log('[Projects] acceptProjectWithFirstCompatibleVehicle =>', { projectId, userId });
+    // 1) Obtener el proyecto
+    const current = await getProjectById(projectId);
+    if (!current) return null;
+    console.log('[Projects] current project:', JSON.stringify(current));
 
-  // 2) Tipo de peso requerido
-  const requiredType = weightToType(current.weight ?? undefined);
-  if (!requiredType) {
-    console.warn('[Projects] requiredType not derivable from weight:', current.weight);
-    return null;
-  }
+    // 2) Tipo de peso requerido
+    const requiredType = weightToType(current.weight ?? undefined);
+    if (!requiredType) {
+        console.warn('[Projects] requiredType not derivable from weight:', current.weight);
+        return null;
+    }
 
-  // 3) Vehículos del usuario
-  const vehicles = await getVehiclesByUser(userId);
-  console.log('[Projects] user vehicles for acceptance (raw):', JSON.stringify(vehicles));
+    // 3) Vehículos del usuario
+    const vehicles = await getVehiclesByUser(userId);
+    console.log('[Projects] user vehicles for acceptance (raw):', JSON.stringify(vehicles));
 
-  // 4) Compatibles por tipo y disponibles (isAvailable === true)
-  const compatible = vehicles.filter(v => (v.weightType ?? v.loadType) === requiredType && v.isAvailable === true);
+    // 4) Compatibles por tipo y disponibles (isAvailable === true  y  v.isInProject === false )
+    const compatible = vehicles.filter(v => (v.weightType ?? v.loadType) === requiredType && v.isAvailable === true && v.isInProject === false );
 
-  // 5) Elegir el primero NO ocupado
-  let match: typeof vehicles[number] | undefined;
-  for (const v of compatible) {
-    const busy = await isVehicleAssignedToActiveProject(v.plate);
-    console.log('[Projects] checking vehicle', v.plate, 'isAvailable:', v.isAvailable, 'busy:', busy);
-    if (!busy) { match = v; break; }
-  }
+    // 5) Elegir el primero NO ocupado
+    let match: typeof vehicles[number] | undefined;
+    for (const v of compatible) {
+        console.log('[Projects] checking vehicle', v.plate, 'isAvailable:', v.isAvailable, 'busy:', v.isInProject);
+        if (v.isInProject === false) {
+            match = v;
+            break;
+        }
+    }
 
-  console.log('[Projects] chosen vehicle match:', match?.plate, 'requiredType:', requiredType);
-  if (!match) return null;
+    console.log('[Projects] chosen vehicle match:', match?.plate, 'requiredType:', requiredType);
+    if (!match) return null;
 
-  // 6) Generar token único para el proyecto aceptado
-  const newToken = await generateUniqueProjectToken();
-  console.log('[Projects] generated token for acceptance:', newToken);
+    // 6) Actualizar proyecto con responsable y vehículo asignado
+    const { data, error } = await supabase
+        .from('project')
+        .update({ responsible_id: userId, vehicle_id: match.plate })
+        .eq('id', projectId)
+        .select('*')
+        .single();
 
-  // 7) Actualizar proyecto con responsable, vehículo y token
-  const { data, error } = await supabase
-    .from('project')
-    .update({ responsible_id: userId, vehicle_id: match.plate, token: newToken })
-    .eq('id', projectId)
-    .select('*')
-    .single();
+    if (error) {
+        console.error('Error aceptando proyecto (asignando vehículo):', error);
+        return null;
+    }
 
-  if (error) {
-    console.error('Error aceptando proyecto (asignando vehículo/token):', error);
-    return null;
-  }
+    // 7) (Opcional pero recomendado) marcar el vehículo como no disponible
+    try {
+        await updateVehicle(match.plate, { isInProject: true });
+        console.log('[Projects] vehicle set isInProject to TRUE:', match.plate);
+    } catch (e) {
+        console.warn('[Projects] could not set vehicle isInProject to TRUE:', match.plate, e);
+    }
 
-  // 8) (Opcional) marcar el vehículo como no disponible
-  try {
-    await updateVehicle(match.plate, { isAvailable: false });
-    console.log('[Projects] vehicle set to unavailable:', match.plate);
-  } catch (e) {
-    console.warn('[Projects] could not set vehicle unavailable:', match.plate, e);
-  }
-
-  console.log('[Projects] project accepted and updated with token:', JSON.stringify({ id: data?.id, token: data?.token }));
-  return data as Project;
+    console.log('[Projects] project accepted and updated:', JSON.stringify(data));
+    return data as Project;
 }
 
 /**

@@ -41,6 +41,11 @@ export default function VehicleCard({ data, onDelete }) {
             {data.loadType}
           </Text>
 
+          <Text style={styles.text}>
+            <Text style={styles.bold}>En proyecto: </Text>
+            {data.isInProject ? 'Sí' : 'No'}
+          </Text>
+
           <View style={styles.estadoRow}>
             <Text style={styles.bold}>Disponible:</Text>
             <Switch

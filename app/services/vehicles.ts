@@ -53,6 +53,7 @@ export async function createVehicle(vehicle: Vehicle, userId: number): Promise<V
 		...vehicle,
 		userResponsible_id: userId,
 		isAvailable: false, // valor por defecto
+		isInProject: false, // valor por defecto
 	};
 
 	const { data, error } = await supabase
@@ -114,6 +115,7 @@ export async function getAvailableVehicles(): Promise<Vehicle[]> {
 	const { data, error } = await supabase
 		.from("vehicle")
 		.select("*")
+		.eq("isInProject", false)
 		.eq("isAvailable", true);
 
 	if (error) {
