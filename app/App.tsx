@@ -11,8 +11,6 @@ import OnBoardingThree from './screens/OnBoarding/OnBoardingThree';
 import LaunchScreen from './screens/LaunchScreen/LaunchScreen';
 import LaunchScreenTwo from './screens/LaunchScreen/LaunchScreenTwo';
 import SignIn from './screens/SignIn/SignIn';
-import SignUp from './screens/SignUp/SignUp';
-import TokenSignUp from './screens/SignUp/TokenSignUp';
 import CompleteProfile from './screens/SignUp/CompleteProfile';
 import HomePageResponsable from './screens/Responsable/HomePageResponsable';
 import HomePageDonador from './screens/Donador/HomePageDonador';
@@ -77,8 +75,6 @@ function RootNavigator() {
         <Stack.Screen name="LaunchScreen" component={LaunchScreen} />
         <Stack.Screen name="LaunchScreenTwo" component={LaunchScreenTwo} />
         <Stack.Screen name="SignIn" component={SignIn} />
-        <Stack.Screen name="SignUp" component={SignUp} />
-        <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
         <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
         
         {/* Pantallas principales según tipo de usuario */}
@@ -116,8 +112,6 @@ function RootNavigator() {
       <Stack.Screen name="LaunchScreen" component={LaunchScreen} />
       <Stack.Screen name="LaunchScreenTwo" component={LaunchScreenTwo} />
       <Stack.Screen name="SignIn" component={SignIn} />
-      <Stack.Screen name="SignUp" component={SignUp} />
-      <Stack.Screen name="TokenSignUp" component={TokenSignUp} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
       
       {/* Pantallas principales (accesibles pero no mostrarse en inicio) */}

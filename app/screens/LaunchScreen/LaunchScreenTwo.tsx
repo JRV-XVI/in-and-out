@@ -20,11 +20,6 @@ const LaunchScreenTwo = () => {
             onPress={() => navigation.navigate('SignIn' as never)} 
             style={styles.signInButton}
           />
-          <Button 
-            title="Registrarse" 
-            onPress={() => navigation.navigate('TokenSignUp' as never)} 
-            style={styles.registerButton} 
-          />
         </View>
       </View>
     </View>
