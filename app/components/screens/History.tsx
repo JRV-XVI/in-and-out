@@ -13,7 +13,7 @@ type TipoFiltro = typeof tipoOptions[number];
 
 const History = () => {
   const { authUser, userProfile } = useAuthContext();
-  const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
+  const [filterOrder, setFilterOrder] = useState<'Ascendente' | 'Descendente'>('Ascendente');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);

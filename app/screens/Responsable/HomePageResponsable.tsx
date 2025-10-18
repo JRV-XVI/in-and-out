@@ -46,7 +46,7 @@ const HomePageResponsable = () => {
   const { sendLocalNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<'home' | 'Entrada' | 'Salida' | 'Abiertas'>('home');
   const [selectedView, setSelectedView] = useState<'Entrada' | 'Salida' | 'Abiertas'>('Abiertas');
-  const [filterOrder, setFilterOrder] = useState<'Completados' | 'Ascendente' | 'Descendente'>('Completados');
+  const [filterOrder, setFilterOrder] = useState<'Ascendente' | 'Descendente'>('Ascendente');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
   const [userVehicles, setUserVehicles] = useState<Vehicle[]>([]);
   // ELIMINAR: const [isRefreshing, setIsRefreshing] = useState(false);
