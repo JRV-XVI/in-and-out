@@ -142,8 +142,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 26,
+    fontSize: 28,
+    fontWeight: '900',
+    marginBottom: 8,
   },
   notificationsList: {
     flex: 1,

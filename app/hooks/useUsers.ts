@@ -67,31 +67,38 @@ export function useSignInUser() {
 	const { handleSignIn } = useAuth();
 
 	const handleSignInUser = async (email: string, password: string): Promise<{ authUser: any; profile: User | null } | null> => {
+		console.log('🔐 [HOOK] Iniciando proceso de login...');
 		setLoading(true);
 		setError(null);
 
 		try {
 			// Autenticar con Supabase Auth
+			console.log('🔑 [HOOK] Autenticando con Supabase...');
 			const authResult = await handleSignIn(email, password);
 			
 			if (!authResult.success || !authResult.data?.user) {
+				console.log('❌ [HOOK] Credenciales incorrectas');
 				setError("Credenciales incorrectas");
+				setLoading(false); // <-- Asegurar que loading se desactiva
 				return null;
 			}
 
 			// Obtener perfil del usuario
+			console.log('👤 [HOOK] Obteniendo perfil del usuario...');
 			const profile = await getUserProfile(authResult.data.user.id);
+			console.log('✅ [HOOK] Login exitoso:', profile?.email);
 			
 			return {
 				authUser: authResult.data.user,
 				profile
 			};
 		} catch (err) {
-			console.error("Error al ingresar:", err);
+			console.error("❌ [HOOK] Error al ingresar:", err);
 			setError("Ocurrió un problema con el ingreso del usuario");
 			return null;
 		} finally {
 			setLoading(false);
+			console.log('✅ [HOOK] Loading state: false');
 		}
 	};
 

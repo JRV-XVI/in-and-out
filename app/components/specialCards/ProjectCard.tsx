@@ -56,7 +56,6 @@ const getStatus = (projectState: number | null | undefined): 'cancelado' | 'conf
   if (projectState === 0) return 'cancelado';
   if (projectState === 1 || projectState === 2) return 'confirmacion';
   if (projectState === 3) return 'en_recoleccion';
-  if (projectState === 4) return 'recolectado';
   return 'finalizado';
 };
 
@@ -79,15 +78,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
-  const [verifying, setVerifying] = useState(false); // <-- estado de verificación
+  const [verifying, setVerifying] = useState(false);
   
   // Extract values from project
   const type = getProjectType(project.projectType);
   const date = formatDate(project.expirationDate || project.created_at);
-  const donors = 1; // Default value, can be adjusted if needed
   const vehicleType = getVehicleTypeLabel(project.loadType);
   const address = project.direction || 'Sin dirección';
-  const donorName = project.title || 'Sin nombre';
+  const donorName = project.creator_id?.name || project.title || 'Sin nombre';
   const products = getProducts(project.foodList);
   const status = getStatus(project.projectState);
   const tokens = project.token ? [String(project.token)] : [];
@@ -311,13 +309,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <Text style={styles.detailText}>{vehicleType}</Text>
               </View>
             </View>
-            <View style={styles.detailRow}>
-              <Ionicons name="cube-outline" size={20} color="#CE0E2D" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Donadores</Text>
-                <Text style={styles.detailText}>{donors}</Text>
-              </View>
-            </View>
           </View>
 
           {/* Token Section - Solo visible en "en_recoleccion" */}
@@ -344,8 +335,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               )}
             </View>
           )}
-
-          {/* Botón dinámico según estado */}
           {renderActionButton()}
 
           {/* Fecha al final como DonationCard */}
