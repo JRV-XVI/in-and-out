@@ -79,7 +79,7 @@ const HomePageAdmin = () => {
 
         <Card 
           title = "Apoyo a comunidades"
-          count = {0}
+          count = {allProjects ? allProjects.filter(p => (p.projectType ?? 0) === 2 && (p.projectState ?? 0) === 5).length : 0}
           type = "apoyo"
         />
 
