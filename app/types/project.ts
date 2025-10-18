@@ -15,4 +15,5 @@ export interface Project {
 	direction?: string | null;
 	photo?: string | null;
 	notes?: string | null;
+	volunteers?: number | null;
 }

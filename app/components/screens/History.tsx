@@ -130,7 +130,7 @@ const History = () => {
               key={item.id}
               project={{
                 ...item,
-                token: item.token ? Number(item.token) : null,
+                token: item.token ? String(item.token) : null,
                 projectType: typeof item.projectType === 'string' ? Number(item.projectType) : item.projectType,
               }}
             />
