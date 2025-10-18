@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
 import Reload from '../../components/common/Reload';
 
@@ -17,15 +17,72 @@ const Notifications = () => {
 
   // Función para obtener icono según el contenido
   const getIcon = (text: string) => {
-    if (text.includes('aceptado')) {
-      return <MaterialIcons name="check-circle-outline" size={28} color="#fff" />;
-    } else if (text.includes('llegado') || text.includes('transporte')) {
-      return <Ionicons name="location-outline" size={28} color="#fff" />;
-    } else if (text.includes('cancelado')) {
-      return <MaterialIcons name="cancel" size={28} color="#fff" />;
-    } else {
-      return <Ionicons name="notifications-outline" size={28} color="#fff" />;
+    const lowerText = text.toLowerCase();
+    
+    // Iconos de estado positivo
+    if (lowerText.includes('aceptado') || lowerText.includes('aprobado') || lowerText.includes('completado')) {
+      return <Ionicons name="checkmark-circle" size={28} color="#fff" />;
+    } 
+    
+    // Iconos de éxito/confirmación
+    if (lowerText.includes('éxito') || lowerText.includes('exitoso') || lowerText.includes('confirmado')) {
+      return <Ionicons name="checkmark-done-circle" size={28} color="#fff" />;
     }
+    
+    // Iconos de ubicación/transporte
+    if (lowerText.includes('llegado') || lowerText.includes('llegada')) {
+      return <Ionicons name="location" size={28} color="#fff" />;
+    }
+    
+    if (lowerText.includes('transporte') || lowerText.includes('camino') || lowerText.includes('ruta')) {
+      return <Ionicons name="car" size={28} color="#fff" />;
+    }
+    
+    // Iconos de cancelación/rechazo
+    if (lowerText.includes('cancelado') || lowerText.includes('cancelada')) {
+      return <Ionicons name="close-circle" size={28} color="#fff" />;
+    }
+    
+    if (lowerText.includes('rechazado') || lowerText.includes('denegado')) {
+      return <Ionicons name="ban" size={28} color="#fff" />;
+    }
+    
+    // Iconos de advertencia
+    if (lowerText.includes('advertencia') || lowerText.includes('atención') || lowerText.includes('cuidado')) {
+      return <Ionicons name="warning" size={28} color="#fff" />;
+    }
+    
+    // Iconos de información
+    if (lowerText.includes('información') || lowerText.includes('actualización') || lowerText.includes('cambio')) {
+      return <Ionicons name="information-circle" size={28} color="#fff" />;
+    }
+    
+    // Iconos de proyecto/donación
+    if (lowerText.includes('proyecto') || lowerText.includes('solicitud')) {
+      return <Ionicons name="folder-open" size={28} color="#fff" />;
+    }
+    
+    if (lowerText.includes('donación') || lowerText.includes('donativo')) {
+      return <Ionicons name="heart" size={28} color="#fff" />;
+    }
+    
+    // Iconos de usuario
+    if (lowerText.includes('usuario') || lowerText.includes('perfil') || lowerText.includes('cuenta')) {
+      return <Ionicons name="person-circle" size={28} color="#fff" />;
+    }
+    
+    // Iconos de mensaje/comunicación
+    if (lowerText.includes('mensaje') || lowerText.includes('comentario') || lowerText.includes('respuesta')) {
+      return <Ionicons name="chatbubble-ellipses" size={28} color="#fff" />;
+    }
+    
+    // Iconos de tiempo/recordatorio
+    if (lowerText.includes('recordatorio') || lowerText.includes('pendiente') || lowerText.includes('plazo')) {
+      return <Ionicons name="time" size={28} color="#fff" />;
+    }
+    
+    // Icono por defecto
+    return <Ionicons name="notifications" size={28} color="#fff" />;
   };
 
   // Manejar marcar como leída con feedback inmediato

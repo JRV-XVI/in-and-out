@@ -255,6 +255,7 @@ const HomePageResponsable = () => {
         carga: cargaSimple,
         voluntarios: String(p.token ?? 0),
         proyecto: tipo,
+        titulo: p.title || 'Sin título',
         weightType,
         direccion: p.direction || undefined,
         productos: p.foodList ? Object.values(p.foodList)
@@ -371,6 +372,7 @@ const HomePageResponsable = () => {
               fecha={item.fecha}
               tipo={item.tipo}
               carga={item.carga}
+              title={item.titulo}
               voluntarios={item.voluntarios}
               proyecto={item.proyecto}
               direccion={item.direccion}
