@@ -119,7 +119,7 @@ const AdminHomePageTemplate = ({
             showsVerticalScrollIndicator={false}
           >
             {showHistory ? (
-              <History />
+              <History adminView filterState={6} />
             ) : activeTab === 'search' ? (
               <Search />
             ) : (
@@ -133,7 +133,7 @@ const AdminHomePageTemplate = ({
           // When useScroll is false we render children directly so screens that use FlatList
           // (which is VirtualizedList-backed) won't be nested inside another ScrollView
           showHistory ? (
-            <History />
+            <History adminView filterState={6} />
           ) : activeTab === 'search' ? (
             <Search />
           ) : (

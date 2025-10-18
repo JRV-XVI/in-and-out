@@ -11,7 +11,13 @@ import { Project } from '../../types/project';
 const tipoOptions = ['Todas', 'Entrada', 'Salida'] as const;
 type TipoFiltro = typeof tipoOptions[number];
 
-const History = () => {
+type HistoryProps = {
+  adminView?: boolean;
+  // allow requesting a specific state or list of states to show
+  filterState?: number | number[];
+};
+
+const History = ({ adminView = false, filterState }: HistoryProps) => {
   const { authUser, userProfile } = useAuthContext();
   const [filterOrder, setFilterOrder] = useState<'Ascendente' | 'Descendente'>('Ascendente');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
@@ -32,7 +38,7 @@ const History = () => {
 
   useEffect(() => {
     loadCompletedProjects();
-  }, [userId, userType]);
+  }, [userId, userType, adminView, JSON.stringify(filterState)]);
 
   const loadCompletedProjects = async () => {
     if (!userId) {
@@ -40,15 +46,21 @@ const History = () => {
     }
     try {
       setLoading(true);
-      let query = supabase
-        .from('project')
-        .select('*')
-        .in('projectState', [0, 6]); // Incluir estado 0 (cancelados) y 6 (completados)
+      let states: number[] = [];
+      if (typeof filterState === 'number') states = [filterState];
+      else if (Array.isArray(filterState)) states = filterState;
+      else states = [0, 6];
 
-      if (userType === 1) {
-        query = query.eq('creator_id', userId);
-      } else {
-        query = query.eq('responsible_id', userId);
+      let query = supabase.from('project').select('*').in('projectState', states);
+
+      // if adminView is true, skip filtering by creator/responsible so admin sees all matching projects
+      const isAdminUser = userType === 3; // if your admin userType is different, adjust accordingly
+      if (!adminView && !isAdminUser) {
+        if (userType === 1) {
+          query = query.eq('creator_id', userId);
+        } else {
+          query = query.eq('responsible_id', userId);
+        }
       }
 
       query = query.order('created_at', { ascending: false });
@@ -143,6 +155,8 @@ const History = () => {
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+    alignSelf: 'center',
     right: 0,
     top: 0,
     width: 370,
