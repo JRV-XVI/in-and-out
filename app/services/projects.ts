@@ -179,20 +179,59 @@ export async function updateProject(
 	id: string,
 	updates: Partial<Omit<Project, "id" | "created_at">>
 ): Promise<Project | null> {
-	const { data, error } = await supabase
-		.from("project")
-		.update(updates)
-		.eq("id", id)
-		.select()
-		.single();
+  // Primero recuperamos el estado actual del proyecto para detectar cambios
+  const current = await getProjectById(id);
 
-	if (error) {
-		console.error("Error actualizando proyecto:", error);
-		return null;
-	}
-    
+  const { data, error } = await supabase
+    .from("project")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  
+    console.log('[Projects] updateProject =>', { id, updates, current, data, error });
 
-	return data as Project;
+  if (error) {
+    console.error("Error actualizando proyecto:", error);
+    return null;
+  }
+
+  // Si el proyecto pasó a estado 6 (finalizado) y antes no estaba en 6,
+  // liberar el vehículo asociado (si existe) marcando isInProject = false
+  try {
+    const newProject = data as Project;
+    const prevState = current?.projectState ?? null;
+    const newState = newProject?.projectState ?? null;
+
+    //Finalizar proyecto
+    if (newState === 6 && prevState !== 6 && newProject.vehicle_id) {
+      try {
+        await updateVehicle(newProject.vehicle_id, { isInProject: false });
+        console.log('[Projects] vehicle released (isInProject=false):', newProject.vehicle_id);
+      } catch (e) {
+        console.warn('[Projects] failed to release vehicle after project completion:', newProject.vehicle_id, e);
+      }
+    }
+
+    /*
+    //Inicializar proyecto
+    if (newState === 2 && prevState !== 2 && newProject.vehicle_id) {
+      try {
+        const newToken = await generateUniqueProjectToken();
+        
+        console.log('[Projects] vehicle released (isInProject=false):', newProject.vehicle_id);
+      } catch (e) {
+        console.warn('[Projects] failed to release vehicle after project completion:', newProject.vehicle_id, e);
+      }
+    }
+      */
+
+
+  } catch (e) {
+    console.warn('[Projects] post-update hook failed:', e);
+  }
+
+  return data as Project;
 }
 
 /**
@@ -330,10 +369,13 @@ export async function acceptProjectWithFirstCompatibleVehicle(projectId: string,
     console.log('[Projects] chosen vehicle match:', match?.plate, 'requiredType:', requiredType);
     if (!match) return null;
 
-    // 6) Actualizar proyecto con responsable y vehículo asignado
+    // 6) Actualizar proyecto con responsable y vehículo asignado y token nuevo
+    const newToken = await generateUniqueProjectToken();
+    console.log('[Projects] generated token for acceptance:', newToken);
+
     const { data, error } = await supabase
         .from('project')
-        .update({ responsible_id: userId, vehicle_id: match.plate })
+        .update({ responsible_id: userId, vehicle_id: match.plate, token: newToken })
         .eq('id', projectId)
         .select('*')
         .single();

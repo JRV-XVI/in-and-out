@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
 import { Project } from '../../types/project';
-import { compareAndConsumeProjectToken } from '../../services/projects'; // <-- agregar import
+import { compareAndConsumeProjectToken, updateProject } from '../../services/projects'; // <-- use updateProject endpoint
 
 interface ProjectCardProps {
   project: Project;
@@ -109,12 +109,59 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       }
       Alert.alert('Éxito', 'Token verificado correctamente.');
       setTokenInput('');
-      onCollected && onCollected();
+      // Call backend to set projectState => recolectado (assumption: recolectado maps to 4)
+      try {
+        const updated = await updateProject(String(project.id), { projectState: 4 });
+        if (!updated) throw new Error('No se actualizó el proyecto');
+        onCollected && onCollected();
+      } catch (e) {
+        console.error('[ProjectCard] failed to update project to recolectado:', e);
+        Alert.alert('Error', 'No fue posible actualizar el estado del proyecto.');
+      }
     } catch (e) {
       console.error('[ProjectCard] verify token error:', e);
       Alert.alert('Error', 'No fue posible verificar el token. Intenta nuevamente.');
     } finally {
       setVerifying(false);
+    }
+  };
+
+  // Handlers that call updateProject endpoint for state transitions
+  // Assumptions for numeric state codes:
+  // - 3 => en_recoleccion (started)
+  // - 4 => recolectado (collected)
+  // - 5 => finalizado (finalizing step)
+  // - 6 => final (completed)
+  const handleStart = async () => {
+    try {
+      const updated = await updateProject(String(project.id), { projectState: 3 });
+      if (!updated) throw new Error('No se actualizó el proyecto');
+      onStart && onStart();
+    } catch (e) {
+      console.error('[ProjectCard] failed to start project:', e);
+      Alert.alert('Error', 'No fue posible iniciar el viaje.');
+    }
+  };
+
+  const handleFinalize = async () => {
+    try {
+      const updated = await updateProject(String(project.id), { projectState: 5 });
+      if (!updated) throw new Error('No se actualizó el proyecto');
+      onFinalize && onFinalize();
+    } catch (e) {
+      console.error('[ProjectCard] failed to finalize project:', e);
+      Alert.alert('Error', 'No fue posible finalizar el proyecto.');
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      const updated = await updateProject(String(project.id), { projectState: 6 });
+      if (!updated) throw new Error('No se actualizó el proyecto');
+      onComplete && onComplete();
+    } catch (e) {
+      console.error('[ProjectCard] failed to complete project:', e);
+      Alert.alert('Error', 'No fue posible terminar el proyecto.');
     }
   };
 
@@ -125,7 +172,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         return (
           <TouchableOpacity
             style={[styles.startBtn, { backgroundColor: '#CE0E2D' }]}
-            onPress={onStart}
+            onPress={handleStart}
             activeOpacity={0.8}
           >
             <Ionicons name="car-outline" size={20} color="#fff" style={styles.btnIcon} />
@@ -148,7 +195,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         return (
           <TouchableOpacity
             style={[styles.startBtn, { backgroundColor: '#059669' }]}
-            onPress={onFinalize}
+            onPress={handleFinalize}
             activeOpacity={0.8}
           >
             <Ionicons name="flag-outline" size={20} color="#fff" style={styles.btnIcon} />
@@ -159,7 +206,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         return (
           <TouchableOpacity
             style={[styles.startBtn, { backgroundColor: '#5C5C60' }]}
-            onPress={onComplete}
+            onPress={handleComplete}
             activeOpacity={0.8}
           >
             <Ionicons name="checkmark-circle" size={20} color="#fff" style={styles.btnIcon} />
