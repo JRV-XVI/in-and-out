@@ -34,14 +34,14 @@ const ProyectPageAdmin = () => {
 	};
 
 	// counts for tabs
-	// Pending projects are defined as projectState === 0
-	// Active projects are any projectState > 0
+	// Pending projects are defined as projectState === 1
+	// Active projects are any projectState > 1
 	const pendingCount = projects.filter((p) => (p.projectState ?? 0) === 1).length;
-	const activeCount = projects.filter((p) => (p.projectState ?? 0) > 1).length;
+	const activeCount = projects.filter((p) => (p.projectState ?? 0) > 1 && (p.projectState ?? 0) < 4).length;
 
 	// filtered data depending on selected tab
 	const dataToShow = projects.filter((p) =>
-		activeTab === 'activos' ? (p.projectState ?? 0) > 1 : (p.projectState ?? 0) === 0
+		activeTab === 'activos' ? (p.projectState ?? 0) > 1 : (p.projectState ?? 0) === 1
 	);
 
 	return (
