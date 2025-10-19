@@ -19,6 +19,7 @@ const statusConfig = {
   en_recoleccion: { label: 'En camino', color: '#F59E0B', icon: 'car-outline' },
   recolectado: { label: 'Recolectado', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   finalizado: { label: 'Finalizado', color: '#059669', icon: 'checkmark-circle' },
+  terminado: { label: 'Proyecto Terminado', color: '#047857', icon: 'checkbox-outline' },
 };
 
 const statusOrder = ['confirmacion', 'en_recoleccion', 'recolectado', 'finalizado'];
@@ -52,10 +53,13 @@ const getProjectType = (projectType: unknown): 'entrada' | 'salida' => {
 };
 
 // Helper to get status from projectState
-const getStatus = (projectState: number | null | undefined): 'cancelado' | 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' => {
+const getStatus = (projectState: number | null | undefined): 'cancelado' | 'confirmacion' | 'en_recoleccion' | 'recolectado' | 'finalizado' | 'terminado' => {
   if (projectState === 0) return 'cancelado';
   if (projectState === 1 || projectState === 2) return 'confirmacion';
   if (projectState === 3) return 'en_recoleccion';
+  if (projectState === 4) return 'recolectado';
+  if (projectState === 5) return 'finalizado';
+  if (projectState === 6) return 'terminado';
   return 'finalizado';
 };
 
@@ -211,6 +215,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Ionicons name="checkmark-circle" size={20} color="#fff" style={styles.btnIcon} />
             <Text style={styles.startBtnText}>Terminar Proyecto</Text>
           </TouchableOpacity>
+        );
+      case 'terminado':
+        return (
+          <View style={[styles.startBtn, { backgroundColor: '#047857' }]}>
+            <Ionicons name="checkbox-outline" size={20} color="#fff" style={styles.btnIcon} />
+            <Text style={styles.startBtnText}>Proyecto Terminado</Text>
+          </View>
         );
       default:
         return null;
