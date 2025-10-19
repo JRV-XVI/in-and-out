@@ -261,7 +261,7 @@ const DonationCard: React.FC<DonationCardProps> = ({ project, onPress }) => {
                 <Ionicons name="scale-outline" size={20} color="#CE0E2D" />
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Peso total</Text>
-                  <Text style={styles.detailText}>{project.weight} kg</Text>
+                  <Text style={styles.detailText}>{project.weight} t</Text>
                 </View>
               </View>
             )}

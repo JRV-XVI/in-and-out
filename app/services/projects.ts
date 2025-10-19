@@ -293,7 +293,7 @@ export async function getCompatibleValidatedProjectsForUser(userId: number): Pro
 
     // 4) Construir filtro por rangos
     const orParts: string[] = [];
-    if (weightTypes.has(1)) orParts.push('and(weight.gte.3,weight.lte.5)');
+    if (weightTypes.has(1)) orParts.push('and(weight.gte.0,weight.lte.5)');
     if (weightTypes.has(2)) orParts.push('and(weight.gt.5,weight.lte.10)');
     if (weightTypes.has(3)) orParts.push('weight.gt.10');
 

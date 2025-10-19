@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Platform, Alert as RNAlert, ActivityIndicator } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import HomePageTemplate from '../../components/screens/HomePageTemplate';
 import DonationCard from '../../components/specialCards/DonationCard';
@@ -9,6 +8,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
 import RefreshButton from '../../components/common/RefreshButton';
+import PhotoUpload from '../../components/common/PhotoUpload';
 import { createProject, getProjectByDonador, getCountsDonationsComplete, getCountsDonationsPause, getCountsDonationsCanceled } from '../../services/projects';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -35,11 +35,12 @@ const HomePageDonador = () => {
   const [fechaExpiracion, setFechaExpiracion] = useState('');
   const [notas, setNotas] = useState('');
   const [direccion, setDireccion] = useState('');
-  const [evidencia, setEvidencia] = useState<any>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'info'>('info');
   const [isLoading, setIsLoading] = useState(false);
+  const [photoResetTrigger, setPhotoResetTrigger] = useState(0); // Para resetear PhotoUpload
 
   // Estados para mis donaciones
   const [myProjects, setMyProjects] = useState<Project[]>([]);
@@ -171,24 +172,17 @@ const HomePageDonador = () => {
     ));
   };
 
-  const seleccionarEvidencia = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
-        copyToCacheDirectory: true,
-      });
+  const handlePhotoUploaded = (url: string) => {
+    setPhotoUrl(url);
+    setAlertMessage('Foto subida correctamente');
+    setAlertType('success');
+    setShowAlert(true);
+  };
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setEvidencia(result.assets[0]);
-        setAlertMessage('Archivo cargado correctamente');
-        setAlertType('success');
-        setShowAlert(true);
-      }
-    } catch (error) {
-      setAlertMessage('Error al cargar el archivo');
-      setAlertType('error');
-      setShowAlert(true);
-    }
+  const handlePhotoError = (error: string) => {
+    setAlertMessage(error);
+    setAlertType('error');
+    setShowAlert(true);
   };
 
   const validarFormulario = () => {
@@ -240,8 +234,8 @@ const HomePageDonador = () => {
       return false;
     }
 
-    if (!evidencia) {
-      setAlertMessage('Debe subir al menos un archivo de evidencia');
+    if (!photoUrl) {
+      setAlertMessage('Debe tomar o elegir una foto de evidencia');
       setAlertType('error');
       setShowAlert(true);
       return false;
@@ -297,7 +291,7 @@ const HomePageDonador = () => {
                 expirationDate: fechaExpiracion || null,
                 notes: notas || null,
                 direction: direccion,
-                photo: evidencia?.uri || null,
+                photo: photoUrl, // URL pública de Supabase Storage
                 projectType: 1, // 1 para donación
                 volunteers: 0,
                 projectState: 1, // No confirmado
@@ -361,7 +355,8 @@ const HomePageDonador = () => {
     setFechaExpiracion('');
     setNotas('');
     setDireccion('');
-    setEvidencia(null);
+    setPhotoUrl(null);
+    setPhotoResetTrigger(prev => prev + 1); // Incrementar para resetear PhotoUpload
   };
 
   return (
@@ -585,21 +580,13 @@ const HomePageDonador = () => {
             </View>
 
             {/* Evidencia */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Evidencia (imagen o PDF)</Text>
-              <TouchableOpacity 
-                style={styles.uploadButton}
-                onPress={seleccionarEvidencia}
-              >
-                <Ionicons name="cloud-upload-outline" size={32} color="#fff" />
-                <Text style={styles.uploadButtonText}>
-                  {evidencia ? evidencia.name : 'Seleccionar archivo'}
-                </Text>
-                {evidencia && (
-                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                )}
-              </TouchableOpacity>
-            </View>
+            <PhotoUpload
+              onPhotoUploaded={handlePhotoUploaded}
+              onError={handlePhotoError}
+              label="Evidencia (foto)"
+              bucketName="evidences"
+              resetTrigger={photoResetTrigger}
+            />
 
             {/* Botón enviar */}
             <Button
@@ -719,20 +706,6 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
     color: '#FFFFFF',
-  },
-  uploadButton: {
-    backgroundColor: '#5C5C60',
-    borderRadius: 14,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  uploadButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '500',
-    marginTop: 8,
   },
   submitButton: {
     backgroundColor: '#CE0E2D',
