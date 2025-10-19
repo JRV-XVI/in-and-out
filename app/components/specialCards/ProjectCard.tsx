@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
 import { Project } from '../../types/project';
-import { compareAndConsumeProjectToken, updateProject } from '../../services/projects'; // <-- use updateProject endpoint
+import { compareAndConsumeProjectToken, updateProject } from '../../services/projects';
 
 interface ProjectCardProps {
   project: Project;
@@ -88,7 +88,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const donorName = project.title || 'Sin nombre';
   const products = getProducts(project.foodList);
   const status = getStatus(project.projectState);
-  const tokens = project.token ? [String(project.token)] : [];
   
   const isEntrada = type === 'entrada';
   const currentStatus = statusConfig[status];
@@ -229,13 +228,25 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     >
       {/* Header */}
       <View style={styles.headerContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons
-            name={isEntrada ? 'arrow-down-circle' : 'arrow-up-circle'}
-            size={36}
-            color={isEntrada ? '#CE0E2D' : '#5C5C60'}
-          />
+        {/* Imagen del Proyecto */}
+        <View style={styles.imageContainer}>
+          {project.photo ? (
+            <Image
+              source={{ uri: project.photo }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.imagePlaceholder, { backgroundColor: currentStatus.color + '20' }]}>
+              <Ionicons
+                name={isEntrada ? 'arrow-down-circle' : 'arrow-up-circle'}
+                size={40}
+                color={isEntrada ? '#CE0E2D' : '#5C5C60'}
+              />
+            </View>
+          )}
         </View>
+
         <View style={styles.mainInfo}>
           <Text style={styles.title} numberOfLines={2}>
             {donorName}
@@ -334,13 +345,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               </View>
             </View>
             <View style={styles.detailRow}>
-              <Ionicons name="person-outline" size={20} color="#CE0E2D" />
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Donador</Text>
-                <Text style={styles.detailText}>{donorName}</Text>
-              </View>
-            </View>
-            <View style={styles.detailRow}>
               <Ionicons name="basket-outline" size={20} color="#CE0E2D" />
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Productos</Text>
@@ -413,16 +417,23 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
   },
-  iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
+  imageContainer: {
+    width: 80,
+    height: 80,
+    marginRight: 12,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-    marginRight: 12,
+    backgroundColor: '#F5F5F5',
   },
   mainInfo: {
     flex: 1,
