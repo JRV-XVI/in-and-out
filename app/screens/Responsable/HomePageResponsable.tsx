@@ -118,7 +118,7 @@ const HomePageResponsable = () => {
               
               // Determinar el tipo de carga requerido
               let requiredWeightType: number | null = null;
-              if (projectWeight >= 3 && projectWeight <= 5) requiredWeightType = 1;
+              if (projectWeight >= 0 && projectWeight <= 5) requiredWeightType = 1;
               else if (projectWeight > 5 && projectWeight <= 10) requiredWeightType = 2;
               else if (projectWeight > 10) requiredWeightType = 3;
 
@@ -244,7 +244,7 @@ const HomePageResponsable = () => {
       // Calcular weightType basado en el peso del proyecto
       const projectWeight = p.weight || 0;
       let weightType: number | undefined = undefined;
-      if (projectWeight >= 3 && projectWeight <= 5) weightType = 1; // Ligera
+      if (projectWeight >= 0 && projectWeight <= 5) weightType = 1; // Ligera
       else if (projectWeight > 5 && projectWeight <= 10) weightType = 2; // Mediana
       else if (projectWeight > 10) weightType = 3; // Pesada
 
