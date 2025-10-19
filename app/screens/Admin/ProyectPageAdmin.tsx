@@ -5,7 +5,7 @@ import RefreshButton from '../../components/common/RefreshButton';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
-import * as DocumentPicker from 'expo-document-picker';
+import PhotoUpload from '../../components/common/PhotoUpload';
 import { Project } from '../../types/project';
 import { getAllProjects, createProject } from '../../services/projects';
 import { useAuthContext } from '../../context/AuthContext';
@@ -34,7 +34,8 @@ const ProyectPageAdmin = () => {
 	const [notas, setNotas] = useState('');
 	const [direccion, setDireccion] = useState('');
 	const [volunteers, setVolunteers] = useState<number>(0);
-	const [evidencia, setEvidencia] = useState<any>(null);
+	const [evidencia, setEvidencia] = useState<string | null>(null);
+	const [resetPhotoTrigger, setResetPhotoTrigger] = useState<number>(0);
 	const [isLoadingCreate, setIsLoadingCreate] = useState(false);
 	const [alertVisible, setAlertVisible] = useState(false);
 	const [alertMessage, setAlertMessage] = useState('');
@@ -79,16 +80,8 @@ const ProyectPageAdmin = () => {
 	const eliminarArticulo = (id: string) => setArticulos(prev => prev.filter(a => a.id !== id));
 	const actualizarArticulo = (id: string, campo: 'nombre' | 'peso', valor: string) => setArticulos(prev => prev.map(a => a.id === id ? { ...a, [campo]: valor } : a));
 
-	const seleccionarEvidencia = async () => {
-		try {
-			const res = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
-			if (!res.canceled && res.assets && res.assets.length > 0) setEvidencia(res.assets[0]);
-		} catch (e) {
-			setAlertMessage('Error al cargar archivo');
-			setAlertType('error');
-			setAlertVisible(true);
-		}
-	};
+	// PhotoUpload component handles permissions, camera and uploading to Supabase.
+	// onPhotoUploaded will receive the public URL which we store in `evidencia`.
 
 	const validarFormulario = () => {
 		if (!titulo.trim()) { setAlertMessage('El título es obligatorio'); setAlertType('error'); setAlertVisible(true); return false; }
@@ -111,6 +104,7 @@ const ProyectPageAdmin = () => {
 		setNotas('');
 		setDireccion('');
 		setEvidencia(null);
+		setResetPhotoTrigger(prev => prev + 1);
 	};
 
 	const handleEnviar = async () => {
@@ -127,7 +121,7 @@ const ProyectPageAdmin = () => {
 				expirationDate: fechaExpiracion || null,
 				notes: notas || null,
 				direction: direccion,
-				photo: evidencia?.uri || null,
+				photo: evidencia || null,
 				projectType: 2,
 				volunteers: volunteers,
 				projectState: 2,
@@ -246,9 +240,13 @@ const ProyectPageAdmin = () => {
 					</View>
 
 					<Input placeholder="Notas (opcional)" value={notas} onChangeText={setNotas} />
-					<TouchableOpacity onPress={seleccionarEvidencia} style={{ alignItems: 'center', marginTop: 10, marginBottom: 20 }}>
-						<Text style={{ color: '#ce0e2d' }}>{evidencia ? 'Evidencia cargada' : 'Subir evidencia'}</Text>
-					</TouchableOpacity>
+					<PhotoUpload
+						label="Evidencia (foto)"
+						onPhotoUploaded={(url) => setEvidencia(url)}
+						onError={(err) => { setAlertMessage(err); setAlertType('error'); setAlertVisible(true); }}
+						bucketName="evidences"
+						resetTrigger={resetPhotoTrigger}
+					/>
 					<View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 18 }}>
 						<Button title={isLoadingCreate ? 'Creando...' : 'Crear proyecto'} onPress={() => { if (!isLoadingCreate) handleEnviar(); }} style={{ flex: 1 }} />
 					</View>
