@@ -383,7 +383,7 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
             )}
 
             {/* When project has progressed beyond admin confirmation show volunteers as text */}
-            {localProjectState && localProjectState > 1 && (
+            {(localProjectState ?? -1) > 1 && (
               <View style={styles.detailRow}>
                 <Ionicons name="people-circle" size={20} color="#CE0E2D" />
                 <View style={styles.detailContent}>
