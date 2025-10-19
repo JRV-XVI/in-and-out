@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Image } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Vehicle } from '../../types/vehicle';
 import Alert from '../common/Alert';
@@ -18,6 +18,7 @@ export interface SolicitudCardProps {
   onAccept: (selectedVehicle?: Vehicle) => void;
   icon?: React.ReactNode;
   isAccepting?: boolean;
+  photo?: string; // Imagen del proyecto
 }
 
 // Helper to get vehicle type label by weightType
@@ -54,6 +55,7 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
   onAccept,
   icon,
   isAccepting,
+  photo,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
@@ -120,17 +122,29 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
       >
         {/* Header */}
         <View style={styles.headerContainer}>
-          <View style={styles.iconCircle}>
-            {icon ? (
-              icon
-            ) : (
-              <Ionicons
-                name={isEntrada ? 'arrow-down-circle' : 'arrow-up-circle'}
-                size={36}
-                color={isEntrada ? '#CE0E2D' : '#5C5C60'}
+          {/* Imagen del Proyecto */}
+          <View style={styles.imageContainer}>
+            {photo ? (
+              <Image
+                source={{ uri: photo }}
+                style={styles.image}
+                resizeMode="cover"
               />
+            ) : icon ? (
+              <View style={styles.imagePlaceholder}>
+                {icon}
+              </View>
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Ionicons
+                  name={isEntrada ? 'arrow-down-circle' : 'arrow-up-circle'}
+                  size={40}
+                  color={isEntrada ? '#CE0E2D' : '#5C5C60'}
+                />
+              </View>
             )}
           </View>
+
           <View style={styles.mainInfo}>
             <Text style={styles.title} numberOfLines={2}>
               {title}
@@ -339,16 +353,25 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
   },
-  iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
+  imageContainer: {
+    width: 80,
+    height: 80,
+    marginRight: 12,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F5F5F5',
     borderWidth: 2,
     borderColor: '#E5E5E5',
-    marginRight: 12,
   },
   mainInfo: {
     flex: 1,
