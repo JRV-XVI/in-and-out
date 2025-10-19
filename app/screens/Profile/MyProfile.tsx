@@ -94,16 +94,6 @@ const MyProfile = () => {
           onChangeText={setName}
           editable
         />
-
-        <Text style={styles.label}>Correo</Text>
-        <Input
-          value={email}
-          onChangeText={setEmail}
-          editable
-          validate={validateEmail}
-          onValidationError={setEmailError}
-        />
-
         <Text style={styles.label}>Número telefónico</Text>
         <Input
           value={phone}
