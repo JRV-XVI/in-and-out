@@ -381,14 +381,6 @@ const MyVehicles = ({ navigation }: any) => {
           />
 
           <Input
-            label="Foto (URL o descripción)"
-            placeholder="Ejemplo: https://mi-foto.com/vehiculo.jpg"
-            placeholderTextColor="#bbb"
-            value={photo}
-            onChangeText={setPhoto}
-          />
-
-          <Input
             label="Notas (opcional)"
             placeholder="Observaciones"
             placeholderTextColor="#bbb"
