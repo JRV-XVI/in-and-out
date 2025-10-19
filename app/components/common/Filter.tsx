@@ -11,6 +11,7 @@ interface FilterProps {
   onOrderChange?: (value: OrderOption) => void;
   tipoActive?: TipoOption;
   onTipoChange?: (value: TipoOption) => void;
+  hideTipoButtons?: boolean; // Nueva prop para ocultar los botones de tipo
 }
 
 const orderOptions: OrderOption[] = ['Ascendente', 'Descendente'];
@@ -32,6 +33,7 @@ const Filter: React.FC<FilterProps> = ({
   onOrderChange,
   tipoActive = 'Todas',
   onTipoChange,
+  hideTipoButtons = false,
 }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
@@ -81,25 +83,27 @@ const Filter: React.FC<FilterProps> = ({
           </View>
         )}
       </View>
-      <View style={styles.tipoFiltroRow}>
-        {tipoOptions.map(opt => (
-          <TouchableOpacity
-            key={opt}
-            style={[
-              styles.tipoFiltroBtn,
-              tipoActive === opt && styles.tipoFiltroBtnActive,
-            ]}
-            onPress={() => onTipoChange && onTipoChange(opt)}
-          >
-            <Text style={[
-              styles.tipoFiltroText,
-              tipoActive === opt && styles.tipoFiltroTextActive,
-            ]}>
-              {opt}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {!hideTipoButtons && (
+        <View style={styles.tipoFiltroRow}>
+          {tipoOptions.map(opt => (
+            <TouchableOpacity
+              key={opt}
+              style={[
+                styles.tipoFiltroBtn,
+                tipoActive === opt && styles.tipoFiltroBtnActive,
+              ]}
+              onPress={() => onTipoChange && onTipoChange(opt)}
+            >
+              <Text style={[
+                styles.tipoFiltroText,
+                tipoActive === opt && styles.tipoFiltroTextActive,
+              ]}>
+                {opt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 };

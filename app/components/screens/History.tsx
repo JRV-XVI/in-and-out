@@ -15,9 +15,10 @@ type HistoryProps = {
   adminView?: boolean;
   // allow requesting a specific state or list of states to show
   filterState?: number | number[];
+  hideTipoFilter?: boolean; // Nueva prop para ocultar filtro de tipo
 };
 
-const History = ({ adminView = false, filterState }: HistoryProps) => {
+const History = ({ adminView = false, filterState, hideTipoFilter = false }: HistoryProps) => {
   const { authUser, userProfile } = useAuthContext();
   const [filterOrder, setFilterOrder] = useState<'Ascendente' | 'Descendente'>('Ascendente');
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('Todas');
@@ -115,13 +116,22 @@ const History = ({ adminView = false, filterState }: HistoryProps) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Historial De Proyectos</Text>
-        <Filter
-          label="Ordenar por:"
-          activeOrder={filterOrder}
-          onOrderChange={setFilterOrder}
-          tipoActive={tipoFiltro}
-          onTipoChange={setTipoFiltro}
-        />
+        {!hideTipoFilter ? (
+          <Filter
+            label="Ordenar por:"
+            activeOrder={filterOrder}
+            onOrderChange={setFilterOrder}
+            tipoActive={tipoFiltro}
+            onTipoChange={setTipoFiltro}
+          />
+        ) : (
+          <Filter
+            label="Ordenar por:"
+            activeOrder={filterOrder}
+            onOrderChange={setFilterOrder}
+            hideTipoButtons
+          />
+        )}
       </View>
 
       {/* Lista de proyectos */}

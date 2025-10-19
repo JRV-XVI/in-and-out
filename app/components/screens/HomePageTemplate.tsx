@@ -115,7 +115,7 @@ const HomePageTemplate = ({
       {/* Content Card */}
       <View style={styles.contentCard}>
         {showHistory ? (
-          <History />
+          <History hideTipoFilter />
         ) : activeTab === 'search' ? (
           <Search />
         ) : (
