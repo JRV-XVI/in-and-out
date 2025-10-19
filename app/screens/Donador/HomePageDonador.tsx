@@ -218,9 +218,11 @@ const HomePageDonador = () => {
     if (fechaExpiracion) {
       const fechaSeleccionada = new Date(fechaExpiracion);
       const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      if (fechaSeleccionada < hoy) {
-        setAlertMessage('La fecha de expiración debe ser posterior a hoy');
+      // Normaliza ambas fechas a solo año, mes y día
+      const fechaSeleccionadaStr = fechaSeleccionada.toISOString().slice(0, 10);
+      const hoyStr = hoy.toISOString().slice(0, 10);
+      if (fechaSeleccionadaStr < hoyStr) {
+        setAlertMessage('La fecha de expiración debe ser igual o posterior a hoy');
         setAlertType('error');
         setShowAlert(true);
         return false;
