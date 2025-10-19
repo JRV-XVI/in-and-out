@@ -154,8 +154,9 @@ const ProyectPageAdmin = () => {
 	const activeCount = projects.filter((p) => (p.projectState ?? 0) > 1 && (p.projectState ?? 0) < 4).length;
 
 	// filtered data depending on selected tab
+	// keep the same semantics as activeCount: activos are states 2 and 3 ( >1 && <4 )
 	const dataToShow = projects.filter((p) =>
-		activeTab === 'activos' ? (p.projectState ?? 0) > 1 : (p.projectState ?? 0) === 1
+		activeTab === 'activos' ? ((p.projectState ?? 0) > 1 && (p.projectState ?? 0) < 5) : (p.projectState ?? 0) === 1
 	);
 
 	return (
