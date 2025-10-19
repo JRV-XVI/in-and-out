@@ -63,12 +63,14 @@ const AdminHomePageTemplate = ({
   const handlePrimaryAction = () => {
     setSelectedButton('primary');
     setSelectedTabBar(null); // Deselecciona el tabbar
+    setShowHistory(false);
     onPrimaryAction();
   };
 
   const handleSecondaryAction = () => {
     setSelectedButton('secondary');
     setSelectedTabBar(null); // Deselecciona el tabbar
+    setShowHistory(false);
     onSecondaryAction();
   };
 
