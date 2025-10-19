@@ -58,10 +58,6 @@ const Settings = ({ navigation }: any) => {
   return (
     <GeneralTemplate title="Configuración" onBackPress={() => navigation.goBack()}>
       <View style={styles.optionsContainer}>
-        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('NotificationConfig')}>
-          <Ionicons name="notifications-outline" size={32} color="#C8102E" style={styles.icon} />
-          <Text style={styles.optionText}>Configuración de notificaciones</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('SetPasswordThree', { fromSettings: true })}>
           <MaterialIcons name="vpn-key" size={32} color="#C8102E" style={styles.icon} />
           <Text style={styles.optionText}>Configuración de contraseña</Text>

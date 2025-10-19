@@ -117,13 +117,6 @@ const SignIn = () => {
           style={styles.signInButton}
         />
       </View>
-
-      <View style={styles.registerContainer}>
-        <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('TokenSignUp' as never)}>
-          <Text style={styles.registerLink}>Regístrate</Text>
-        </TouchableOpacity>
-      </View>
     </GeneralTemplate>
   );
 };
@@ -155,21 +148,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 5,
     marginTop: 70,
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  registerText: {
-    color: '#5C5C60',
-    fontSize: 14,
-  },
-  registerLink: {
-    color: '#CE0E2D',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   signInButton: {
     width: '55%',
