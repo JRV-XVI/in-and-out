@@ -23,7 +23,7 @@ export interface SolicitudCardProps {
 // Helper to get vehicle type label by weightType
 const getVehicleTypeLabel = (weightType: number | null | undefined): string => {
   const labels: Record<number, string> = {
-    1: 'Carga Ligera (3-5 kg)',
+    1: 'Carga Ligera (0-5 kg)',
     2: 'Carga Mediana (5-10 kg)',
     3: 'Carga Pesada (>10 kg)',
   };
@@ -133,7 +133,7 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({
           </View>
           <View style={styles.mainInfo}>
             <Text style={styles.title} numberOfLines={2}>
-              {proyecto}
+              {title}
             </Text>
             <View style={styles.metaRow}>
               <View style={styles.loadTypeBadge}>
