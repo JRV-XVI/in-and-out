@@ -262,61 +262,69 @@ export async function deleteProject(id: string): Promise<boolean> {
  * tipos de peso (weightType) de los vehículos del usuario.
  */
 export async function getCompatibleValidatedProjectsForUser(userId: number): Promise<Project[]> {
-    console.log('[Projects] getCompatibleValidatedProjectsForUser => userId:', userId);
-    // 1) Obtener vehículos del usuario
-    const vehicles = await getVehiclesByUser(userId);
-    console.log('[Projects] vehicles by user:', JSON.stringify(vehicles));
+  console.log('[Projects] getCompatibleValidatedProjectsForUser => userId:', userId);
+  // 1) Vehículos del usuario
+  const vehicles = await getVehiclesByUser(userId);
+  console.log('[Projects] vehicles by user:', JSON.stringify(vehicles));
 
-    // 2) Filtrar: disponibles (isAvailable === true) y NO ocupados
-    const checks = await Promise.all(
-        vehicles.map(async (v) => {
-            const busy = v.isInProject;
-            return { v, busy, available: v.isAvailable === true };
-        })
-    );
-    const freeAndAvailable = checks.filter(c => c.available && !c.busy).map(c => c.v);
-    console.log('[Projects] free & available vehicles:', freeAndAvailable.map(v => v.plate));
+  // 2) Filtrar: disponibles y NO ocupados
+  const freeAndAvailable = vehicles.filter(v => v.isAvailable === true && v.isInProject === false);
+  console.log('[Projects] free & available vehicles:', freeAndAvailable.map(v => v.plate));
 
-    // 3) Derivar tipos de peso desde los vehículos libres y disponibles
-    const weightTypes = new Set<number>();
-    for (const v of freeAndAvailable) {
-        let t = v.weightType;
-        if (t == null && typeof v.loadType === 'number') t = v.loadType; // fallback histórico
-        if (typeof t === 'number' && t >= 1 && t <= 3) weightTypes.add(t);
+  // 3) Derivar tipos de peso y tipos de carga desde los vehículos libres
+  const weightTypes = new Set<number>();
+  const loadTypes = new Set<number>();
+
+  for (const v of freeAndAvailable) {
+    if (typeof v.weightType === 'number' && v.weightType >= 1 && v.weightType <= 3) {
+      weightTypes.add(v.weightType);
     }
-    console.log('[Projects] derived weightTypes from vehicles:', Array.from(weightTypes));
-
-    if (weightTypes.size === 0) {
-        console.log('[Projects] no weightTypes found for user (no free & available vehicles)');
-        return [];
+    if (typeof v.loadType === 'number' && v.loadType >= 1 && v.loadType <= 3) {
+      loadTypes.add(v.loadType);
     }
+  }
 
-    // 4) Construir filtro por rangos
-    const orParts: string[] = [];
-    if (weightTypes.has(1)) orParts.push('and(weight.gte.0,weight.lte.5)');
-    if (weightTypes.has(2)) orParts.push('and(weight.gt.5,weight.lte.10)');
-    if (weightTypes.has(3)) orParts.push('weight.gt.10');
+  console.log('[Projects] derived weightTypes:', Array.from(weightTypes));
+  console.log('[Projects] derived loadTypes:', Array.from(loadTypes));
 
-    // 5) Ejecutar query base: validados y sin responsable
-    let query = supabase
-        .from('project')
-        .select('*')
-        .eq('projectState', 2)
-        .is('responsible_id', null);
+  if (weightTypes.size === 0) {
+    console.log('[Projects] no weightTypes found for user (no free & available vehicles with weightType)');
+    return [];
+  }
 
-    if (orParts.length > 0) {
-        query = query.or(orParts.join(','));
-    }
+  // 4) Filtro por rangos de peso
+  const orParts: string[] = [];
+  if (weightTypes.has(1)) orParts.push('and(weight.gte.0,weight.lte.5)');
+  if (weightTypes.has(2)) orParts.push('and(weight.gt.5,weight.lte.10)');
+  if (weightTypes.has(3)) orParts.push('weight.gt.10');
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+  // 5) Query base
+  let query = supabase
+    .from('project')
+    .select('*')
+    .eq('projectState', 2)
+    .is('responsible_id', null);
 
-    if (error) {
-        console.error('Error obteniendo proyectos compatibles:', error);
-        return [];
-    }
+  if (orParts.length > 0) {
+    query = query.or(orParts.join(','));
+  }
 
-    console.log('[Projects] compatible projects result:', JSON.stringify(data));
-    return (data || []) as Project[];
+  // 6) Si tenemos tipos de carga, exigir coincidencia de loadType en proyectos
+  if (loadTypes.size > 0) {
+    query = query.in('loadType', Array.from(loadTypes));
+    // Si quieres permitir proyectos con loadType null además de los compatibles, usa:
+    // query = query.or(`loadType.is.null,loadType.in.(${Array.from(loadTypes).join(',')})`);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error obteniendo proyectos compatibles:', error);
+    return [];
+  }
+
+  console.log('[Projects] compatible projects result:', JSON.stringify(data));
+  return (data || []) as Project[];
 }
 
 function weightToType(weight?: number | null): 1 | 2 | 3 | null {
@@ -336,65 +344,76 @@ function weightToType(weight?: number | null): 1 | 2 | 3 | null {
  * del usuario (por rangos de peso). Devuelve el proyecto actualizado o null si no hay vehículo compatible.
  */
 export async function acceptProjectWithFirstCompatibleVehicle(projectId: string, userId: number): Promise<Project | null> {
-    console.log('[Projects] acceptProjectWithFirstCompatibleVehicle =>', { projectId, userId });
-    // 1) Obtener el proyecto
-    const current = await getProjectById(projectId);
-    if (!current) return null;
-    console.log('[Projects] current project:', JSON.stringify(current));
+  console.log('[Projects] acceptProjectWithFirstCompatibleVehicle =>', { projectId, userId });
+  // 1) Obtener el proyecto
+  const current = await getProjectById(projectId);
+  if (!current) return null;
+  console.log('[Projects] current project:', JSON.stringify(current));
 
-    // 2) Tipo de peso requerido
-    const requiredType = weightToType(current.weight ?? undefined);
-    if (!requiredType) {
-        console.warn('[Projects] requiredType not derivable from weight:', current.weight);
-        return null;
+  // 2) Tipos requeridos
+  const requiredWeightType = weightToType(current.weight ?? undefined);
+  const requiredLoadType = typeof current.loadType === 'number' ? current.loadType : null;
+
+  if (!requiredWeightType) {
+    console.warn('[Projects] requiredWeightType not derivable from weight:', current.weight);
+    return null;
+  }
+
+  // 3) Vehículos del usuario
+  const vehicles = await getVehiclesByUser(userId);
+  console.log('[Projects] user vehicles for acceptance (raw):', JSON.stringify(vehicles));
+
+  // 4) Compatibles por peso y tipo de carga y disponibles
+  const compatible = vehicles.filter(v => {
+    // Peso del vehículo (NO usar loadType como fallback del peso)
+    const vehicleWeightType = typeof v.weightType === 'number' ? v.weightType : null;
+    const weightOk = vehicleWeightType === requiredWeightType;
+
+    // Tipo de carga (si el proyecto lo especifica)
+    const loadOk = requiredLoadType == null ? true : v.loadType === requiredLoadType;
+
+    return weightOk && loadOk && v.isAvailable === true && v.isInProject === false;
+  });
+
+  // 5) Elegir el primero NO ocupado
+  let match: typeof vehicles[number] | undefined;
+  for (const v of compatible) {
+    console.log('[Projects] checking vehicle', v.plate, 'isAvailable:', v.isAvailable, 'busy:', v.isInProject);
+    if (v.isInProject === false) {
+      match = v;
+      break;
     }
+  }
 
-    // 3) Vehículos del usuario
-    const vehicles = await getVehiclesByUser(userId);
-    console.log('[Projects] user vehicles for acceptance (raw):', JSON.stringify(vehicles));
+  console.log('[Projects] chosen vehicle match:', match?.plate, 'requiredWeightType:', requiredWeightType, 'requiredLoadType:', requiredLoadType);
+  if (!match) return null;
 
-    // 4) Compatibles por tipo y disponibles (isAvailable === true  y  v.isInProject === false )
-    const compatible = vehicles.filter(v => (v.weightType ?? v.loadType) === requiredType && v.isAvailable === true && v.isInProject === false );
+  // 6) Actualizar proyecto con responsable y vehículo asignado y token nuevo
+  const newToken = await generateUniqueProjectToken();
+  console.log('[Projects] generated token for acceptance:', newToken);
 
-    // 5) Elegir el primero NO ocupado
-    let match: typeof vehicles[number] | undefined;
-    for (const v of compatible) {
-        console.log('[Projects] checking vehicle', v.plate, 'isAvailable:', v.isAvailable, 'busy:', v.isInProject);
-        if (v.isInProject === false) {
-            match = v;
-            break;
-        }
-    }
+  const { data, error } = await supabase
+    .from('project')
+    .update({ responsible_id: userId, vehicle_id: match.plate, token: newToken })
+    .eq('id', projectId)
+    .select('*')
+    .single();
 
-    console.log('[Projects] chosen vehicle match:', match?.plate, 'requiredType:', requiredType);
-    if (!match) return null;
+  if (error) {
+    console.error('Error aceptando proyecto (asignando vehículo):', error);
+    return null;
+  }
 
-    // 6) Actualizar proyecto con responsable y vehículo asignado y token nuevo
-    const newToken = await generateUniqueProjectToken();
-    console.log('[Projects] generated token for acceptance:', newToken);
+  // 7) Marcar el vehículo como ocupado
+  try {
+    await updateVehicle(match.plate, { isInProject: true });
+    console.log('[Projects] vehicle set isInProject to TRUE:', match.plate);
+  } catch (e) {
+    console.warn('[Projects] could not set vehicle isInProject to TRUE:', match.plate, e);
+  }
 
-    const { data, error } = await supabase
-        .from('project')
-        .update({ responsible_id: userId, vehicle_id: match.plate, token: newToken })
-        .eq('id', projectId)
-        .select('*')
-        .single();
-
-    if (error) {
-        console.error('Error aceptando proyecto (asignando vehículo):', error);
-        return null;
-    }
-
-    // 7) (Opcional pero recomendado) marcar el vehículo como no disponible
-    try {
-        await updateVehicle(match.plate, { isInProject: true });
-        console.log('[Projects] vehicle set isInProject to TRUE:', match.plate);
-    } catch (e) {
-        console.warn('[Projects] could not set vehicle isInProject to TRUE:', match.plate, e);
-    }
-
-    console.log('[Projects] project accepted and updated:', JSON.stringify(data));
-    return data as Project;
+  console.log('[Projects] project accepted and updated:', JSON.stringify(data));
+  return data as Project;
 }
 
 /**
