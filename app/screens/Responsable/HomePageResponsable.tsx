@@ -253,10 +253,11 @@ const HomePageResponsable = () => {
         fecha,
         tipo,
         carga: cargaSimple,
-        voluntarios: String(p.token ?? 0),
+        voluntarios: String(p.volunteers ?? 0),
         proyecto: tipo,
         titulo: p.title || 'Sin título',
         weightType,
+        requiredLoadType: typeof p.loadType === 'number' ? p.loadType : undefined, // <-- agregar
         direccion: p.direction || undefined,
         productos: p.foodList ? Object.values(p.foodList)
           .filter((item: any) => item && item.nombre)
@@ -378,7 +379,13 @@ const HomePageResponsable = () => {
               direccion={item.direccion}
               productos={item.productos}
               weightType={item.weightType}
-              availableVehicles={userVehicles}
+              // Solo pasar vehículos compatibles por peso + tipo de carga + disponibilidad
+              availableVehicles={userVehicles.filter(v => {
+                const vehicleWeightType = typeof v.weightType === 'number' ? v.weightType : null;
+                const weightOk = item.weightType ? vehicleWeightType === item.weightType : true;
+                const loadOk = item.requiredLoadType != null ? v.loadType === item.requiredLoadType : true;
+                return weightOk && loadOk && v.isAvailable === true && v.isInProject === false;
+              })}
               onAccept={async (selectedVehicle?: Vehicle) => {
                 if (!userProfile?.id) return;
 
