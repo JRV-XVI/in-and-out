@@ -201,7 +201,7 @@ const HomePageResponsable = () => {
 
       const localMessages: Record<number, string> = {
 
-        3: `Iniciaste el viaje del proyecto${projectName}. Solicita el token al donador.`,
+        3: `Iniciaste el viaje del proyecto${projectName}. Solicita el token.`,
         4: `El proyecto${projectName} está en camino.`,
         5: `Finalizaste el proyecto${projectName}.`,
         6: `Terminaste el proyecto${projectName} exitosamente.`
