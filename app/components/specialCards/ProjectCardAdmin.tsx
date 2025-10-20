@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import Token from '../common/Token';
 import { Project } from '../../types/project';
-import { compareAndConsumeProjectToken, updateProject } from '../../services/projects';
+import { compareAndConsumeProjectToken, updateProject, getProjectToken } from '../../services/projects';
 
 interface ProjectCardProps {
   project: Project;
@@ -92,6 +92,8 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
   const [localProjectState, setLocalProjectState] = useState<number | null | undefined>(project.projectState);
   const [volunteersCount, setVolunteersCount] = useState<number>(Number(project.volunteers ?? 0) || 0);
   const [updatingVolunteers, setUpdatingVolunteers] = useState(false);
+  const [projectToken, setProjectToken] = useState<string | null>(null);
+  const [loadingToken, setLoadingToken] = useState(false);
   const ignoreToggleRef = useRef(false);
   
   // Extract values from project
@@ -217,6 +219,27 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
 
     const handleIncVolunteers = () => updateVolunteers(volunteersCount + 1);
     const handleDecVolunteers = () => updateVolunteers(Math.max(0, volunteersCount - 1));
+
+    // Fetch project token when project is en_recoleccion (state 3) and card is expanded
+    React.useEffect(() => {
+      let mounted = true;
+      const shouldFetch = (localProjectState ?? project.projectState) === 3 && expanded && !projectToken;
+      if (!shouldFetch) return;
+      const fetchToken = async () => {
+        try {
+          setLoadingToken(true);
+          const token = await getProjectToken(project.id as any);
+          if (!mounted) return;
+          setProjectToken(token);
+        } catch (e) {
+          console.error('[ProjectCardAdmin] fetch token error:', e);
+        } finally {
+          if (mounted) setLoadingToken(false);
+        }
+      };
+      fetchToken();
+      return () => { mounted = false; };
+    }, [localProjectState, project.projectState, project.id, expanded, projectToken]);
 
   return (
     <TouchableOpacity
@@ -408,6 +431,36 @@ const ProjectCardAdmin: React.FC<ProjectCardProps> = ({
 
           {/* Botón dinámico según estado */}
           {renderActionButton()}
+
+          {/* Token Section - Solo visible en estado 3 (En camino) */}
+            {(localProjectState ?? -1) === 3 && (
+              <View style={styles.tokenSection}>
+                <View style={styles.tokenHeader}>
+                  <Ionicons name="key-outline" size={20} color="#CE0E2D" />
+                  <Text style={styles.tokenTitle}>Da el siguiente token al conductor</Text>
+                </View>
+                {loadingToken ? (
+                  <View style={styles.tokenDisplayContainer}>
+                    <Text style={styles.tokenLabel}>Cargando token...</Text>
+                  </View>
+                ) : projectToken ? (
+                  <View style={styles.tokenDisplayContainer}>
+                    <Text style={styles.tokenLabel}>Token</Text>
+                    <View style={styles.tokenDisplay}>
+                      {String(projectToken).padStart(4, '0').split('').map((digit, idx) => (
+                        <View key={idx} style={styles.tokenDigit}>
+                          <Text style={styles.tokenDigitText}>{digit}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.tokenDisplayContainer}>
+                    <Text style={styles.tokenLabel}>Token no disponible</Text>
+                  </View>
+                )}
+              </View>
+            )}
 
           {/* Fecha al final como DonationCard */}
           <View style={styles.footer}>
@@ -624,39 +677,34 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 8,
   },
-  tokenInputContainer: {
+  tokenDisplayContainer: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginVertical: 12,
   },
-  tokenList: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-  },
-  tokenListLabel: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  tokenItemsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tokenChip: {
-    backgroundColor: '#FEE',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#CE0E2D',
-  },
-  tokenText: {
+  tokenLabel: {
     fontWeight: 'bold',
-    color: '#CE0E2D',
-    fontSize: 14,
+    fontSize: 22,
+    color: '#5C5C60',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  tokenDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  tokenDigit: {
+    width: 54,
+    height: 54,
+    borderRadius: 12,
+    backgroundColor: '#5C5C60',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tokenDigitText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   startBtn: {
     borderRadius: 16,
