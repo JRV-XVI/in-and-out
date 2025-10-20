@@ -381,7 +381,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <Text style={styles.tokenTitle}>Token de identificación</Text>
               </View>
               <Text style={styles.tokenInstructions}>
-                Solicita el token al donador para confirmar la recolección
+                Solicita el token para confirmar la recolección
               </Text>
               <View style={styles.tokenInputContainer}>
                 <Token value={tokenInput} onChange={setTokenInput} />

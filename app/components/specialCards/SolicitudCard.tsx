@@ -24,9 +24,9 @@ export interface SolicitudCardProps {
 // Helper to get vehicle type label by weightType
 const getVehicleTypeLabel = (weightType: number | null | undefined): string => {
   const labels: Record<number, string> = {
-    1: 'Carga Ligera (0-5 kg)',
-    2: 'Carga Mediana (5-10 kg)',
-    3: 'Carga Pesada (>10 kg)',
+    1: 'Carga Ligera (0-5 t)',
+    2: 'Carga Mediana (5-10 t)',
+    3: 'Carga Pesada (>10 t)',
   };
   return labels[weightType || 1] || 'Sin especificar';
 };
