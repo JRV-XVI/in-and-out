@@ -12,13 +12,13 @@ A mobile application built for **Banco de Alimentos Jalisco**, a social benefit 
 
 ## Features by Role
 
-### 🧑 Donador (Donor)
+### 🧑 Donor
 - Register donation projects with details such as title, items, weight, load type, address, and photo evidence
 - Track the status of active donations in real time
 - View personal donation history and stats
 - Export own project data as CSV
 
-### 🚚 Responsable (Transport Operator)
+### 🚚 Transport Operator
 - Browse validated projects compatible with registered vehicles
 - Accept projects, triggering automatic vehicle assignment based on availability and compatibility
 - Advance project state through transport milestones via action cards
@@ -39,13 +39,13 @@ Each project moves through the following states:
 
 | State | Label |
 |-------|-------|
-| 0 | Cancelado |
-| 1 | Pendiente *(awaiting admin review)* |
-| 2 | Confirmado |
-| 3 | En camino |
-| 4 | Recolectado |
-| 5 | Completado / Finalizado intermedio |
-| 6 | Finalizado |
+| 0 | Cancelled |
+| 1 | Pending *(awaiting admin review)* |
+| 2 | Confirmed |
+| 3 | Active *(on its way)* |
+| 4 | Recollected |
+| 5 | Completed |
+| 6 | Finalized |
 
 State transitions are triggered by role-appropriate action cards and persisted to the database in real time.
 
@@ -56,12 +56,12 @@ State transitions are triggered by role-appropriate action cards and persisted t
 ### Frontend
 - **React Native** + **Expo**
 - **TypeScript**
-- **React Navigation** — stack navigation with modal side panels
+- **React Navigation** - stack navigation with modal side panels
 - `react-native-modal`, `expo-image-picker`, `expo-file-system`, `expo-sharing`, `expo-document-picker`
 
 ### Backend
-- **Supabase** — Authentication, PostgreSQL database, Storage, and Realtime subscriptions
-- **Supabase Edge Functions** — serverless function for secure account deletion
+- **Supabase** - Authentication, PostgreSQL database, Storage, and Realtime subscriptions
+- **Supabase Edge Functions** - serverless function for secure account deletion
 
 ---
 
@@ -69,11 +69,11 @@ State transitions are triggered by role-appropriate action cards and persisted t
 
 The app follows a clean separation of concerns across four layers:
 
-- **`context/`** — App-wide state management for authentication, user profile, and notifications (`AuthContext`, `UserContext`, `NotificationContext`)
-- **`services/`** — All Supabase I/O logic (projects, users, vehicles, notifications)
-- **`hooks/`** — Async wrappers around service calls for use in UI components
-- **`screens/`** — Role-specific dashboards and views
-- **`components/`** — Reusable UI elements and specialized project cards
+- **`context/`** - App-wide state management for authentication, user profile, and notifications (`AuthContext`, `UserContext`, `NotificationContext`)
+- **`services/`** - All Supabase I/O logic (projects, users, vehicles, notifications)
+- **`hooks/`** - Async wrappers around service calls for use in UI components
+- **`screens/`** - Role-specific dashboards and views
+- **`components/`** - Reusable UI elements and specialized project cards
 
 Navigation is conditional: routing is determined at startup based on the authenticated session and the user's role, via `getInitialRoute(userType)`.
 
@@ -123,7 +123,7 @@ The app relies on the following Supabase resources:
 
 **Storage bucket:** `evidences`
 
-**Edge Function:** Handles secure account deletion, removing records from both `public.users` and `auth.users`, cleaning up related vehicle and project references, and blocking deletion if the user has any active responsible projects (state ≠ `6`).
+**Edge Function:** Handles secure account deletion, removing records from both `public.users` and `auth.users`, cleaning up related vehicle and project references, and blocking deletion if the user has any active responsible projects (state != `6`).
 
 ---
 
@@ -155,17 +155,18 @@ npm run web       # Web
 
 ## Known Limitations
 
-- No formal automated test suite (a demo screen `testDogs.tsx` is present for manual testing purposes)
+- No formal automated test suite has been implemented
 - The search screen currently uses local sample data rather than live database queries
 - The Expo app scheme (`myapp`) and some password reset URLs may need alignment before production deployment
+- Even though the project documentation is in English, the project was mainly developed in Spanish to comply with the organization
 - Codebase uses a mix of Spanish and English for identifiers and comments, reflecting the bilingual development context
 
 ---
 
 ## Future Improvements
 
-- Implement live search against the Supabase database
-- Add automated testing (unit and integration)
-- Standardize deep-link scheme across the app
-- Expand CSV export filters and reporting options
-- Add push notification support for real-time mobile alerts
+- Implementation of live search against the Supabase database
+- Addition of automated testing (unit and integration)
+- Standardization of deep-link scheme across the app
+- Expansion of CSV export filters and reporting options
+- Addition of push notification support for real-time mobile alerts
