@@ -1,4 +1,4 @@
-# In & Out — Banco de Alimentos Jalisco
+# In & Out - Banco de Alimentos Jalisco
 
 A mobile application built for **Banco de Alimentos Jalisco**, a social benefit organization dedicated to collecting food and goods and delivering them to families in need. This app digitizes and streamlines their donation and distribution operations, replacing fully manual administrative processes with structured, role-based automated workflows.
 
